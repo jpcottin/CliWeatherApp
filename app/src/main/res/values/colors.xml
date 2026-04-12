@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sunny_orange">#FFFF9800</color>
+    <color name="sunny_yellow">#FFFFC107</color>
+    <color name="cloudy_blue">#FF2196F3</color>
+    <color name="cloudy_light_blue">#FF64B5F6</color>
+    <color name="foggy_grey">#FF607D8B</color>
+    <color name="foggy_light_grey">#FF90A4AE</color>
+    <color name="rainy_blue">#FF3F51B5</color>
+    <color name="rainy_indigo">#FF5C6BC0</color>
+    <color name="night_blue">#FF1A237E</color>
+    <color name="night_dark_blue">#FF000051</color>
+</resources>

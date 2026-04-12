@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="current_time">現在時刻</string>
+    <string name="location_label">場所</string>
+    <string name="refresh">更新</string>
+    <string name="speak">話す</string>
+    <string name="share">共有</string>
+    <string name="grant_permission">権限を許可</string>
+    <string name="map_label">地球上の位置</string>
+    <string name="loading">読み込み中...</string>
+    <string name="locating">測位中...</string>
+    <string name="gps_error">GPS位置の天気</string>
+    <string name="settings">設定</string>
+    <string name="unit">単位</string>
+    <string name="language">言語</string>
+    <string name="time_format">時間形式</string>
+    <string name="loc_mode">モード</string>
+    <string name="gps">GPS</string>
+    <string name="map_click">地図</string>
+    <string name="unknown">不明</string>
+    <string name="minus">マイナス</string>
+    <string name="weather_clear">快晴</string>
+    <string name="weather_cloudy">晴れ時々曇り</string>
+    <string name="weather_foggy">霧</string>
+    <string name="weather_drizzle">霧雨</string>
+    <string name="weather_rainy">雨</string>
+    <string name="weather_snowy">雪</string>
+    <string name="weather_showers">にわか雨</string>
+    <string name="weather_storm">雷雨</string>
+</resources>

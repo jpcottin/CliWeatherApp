@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="current_time">Aktuelle Uhrzeit</string>
+    <string name="location_label">Standort</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="speak">Sprechen</string>
+    <string name="share">Teilen</string>
+    <string name="grant_permission">Berechtigung erteilen</string>
+    <string name="map_label">Position auf der Erde</string>
+    <string name="loading">Laden...</string>
+    <string name="locating">Lokalisierung...</string>
+    <string name="gps_error">Wetter auf GPS</string>
+    <string name="settings">Einstellungen</string>
+    <string name="unit">Einheit</string>
+    <string name="language">Sprache</string>
+    <string name="time_format">Zeitformat</string>
+    <string name="loc_mode">Modus</string>
+    <string name="gps">GPS</string>
+    <string name="map_click">Karte</string>
+    <string name="unknown">Unbekannt</string>
+    <string name="minus">minus</string>
+    <string name="weather_clear">Klarer Himmel</string>
+    <string name="weather_cloudy">Teilweise bewölkt</string>
+    <string name="weather_foggy">Nebelig</string>
+    <string name="weather_drizzle">Nieselregen</string>
+    <string name="weather_rainy">Regnerisch</string>
+    <string name="weather_snowy">Verschneit</string>
+    <string name="weather_showers">Regenschauer</string>
+    <string name="weather_storm">Gewitter</string>
+</resources>
