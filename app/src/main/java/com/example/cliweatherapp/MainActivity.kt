@@ -38,6 +38,7 @@ import androidx.core.content.FileProvider
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -50,8 +51,50 @@ import java.io.FileOutputStream
 import java.util.*
 import kotlin.math.abs
 
+interface WeatherRepository {
+    fun fetch(
+        scope: CoroutineScope,
+        context: Context, useGps: Boolean, lat: Double?, lon: Double?,
+        lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
+        onLoc: (String, String, Double, Double) -> Unit,
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit
+    )
+}
+
+class RetrofitWeatherRepository : WeatherRepository {
+    override fun fetch(
+        scope: CoroutineScope,
+        context: Context, useGps: Boolean, lat: Double?, lon: Double?,
+        lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
+        onLoc: (String, String, Double, Double) -> Unit,
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit
+    ) {
+        scope.launch {
+            fetchLocationAndWeather(context, useGps, lat, lon, lang, is24Hour, hourlyRange, dailyRange, onLoc, onWeather)
+        }
+    }
+}
+
+class MockWeatherRepository : WeatherRepository {
+    override fun fetch(
+        scope: CoroutineScope,
+        context: Context, useGps: Boolean, lat: Double?, lon: Double?,
+        lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
+        onLoc: (String, String, Double, Double) -> Unit,
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit
+    ) {
+        onLoc("Mock City, Test\n(45.00, 90.00)", "Mock City", 45.0, 90.0)
+        val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${it%24}:00", 0, 1, 20.0 + it) }
+        val d = List(dailyRange) { DailyForecastData("2026-04-${12+it}", 0, 15.0, 25.0) }
+        onWeather(0, 22.5, "UTC", 1, h, d)
+    }
+}
+
 class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
+    companion object {
+        var repository: WeatherRepository = RetrofitWeatherRepository()
+    }
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +121,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     val prefManager = remember { PreferenceManager(context) }
-    
+    val repo = MainActivity.repository
+
     var showSettings by remember { mutableStateOf(false) }
     var isCelsius by remember { mutableStateOf(prefManager.getIsCelsius()) }
     var appLanguage by remember { mutableStateOf(prefManager.getLanguage()) }
@@ -102,15 +146,26 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     val ctx = getLocalizedContext(context, appLanguage)
 
-    var permissionGranted by remember { 
+    var permissionGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
     }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms -> 
-        permissionGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true || perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true 
+    LaunchedEffect(Unit) {
+        while(true) {
+            val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            if (isGranted != permissionGranted) {
+                permissionGranted = isGranted
+            }
+            delay(1000)
+        }
+    }
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
+        permissionGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true || perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
     }
 
     LaunchedEffect(currentLat, currentLon) { prefManager.saveLocation(currentLat, currentLon) }
@@ -125,20 +180,26 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         if (mapErrorMessage != null) { delay(2000); mapErrorMessage = null }
     }
 
+    val performFetch: (Boolean, Double?, Double?) -> Unit = { gps, lat, lon ->
+        isRefreshing = true
+        repo.fetch(scope, context, gps, lat, lon, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, flat, flon ->
+            locationInfo = full; rawCity = city; currentLat = flat; currentLon = flon
+        }, { code, temp, tz, day, hourly, daily ->
+            weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
+            isRefreshing = false
+        })
+    }
+
+    LaunchedEffect(Unit) {
+        performFetch(useGps, currentLat, currentLon)
+    }
+
     DisposableEffect(permissionGranted, useGps) {
         if (useGps && permissionGranted) {
             val lm = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
             val listener = object : android.location.LocationListener {
                 override fun onLocationChanged(loc: android.location.Location) {
-                    scope.launch {
-                        isRefreshing = true
-                        fetchLocationAndWeather(context, false, loc.latitude, loc.longitude, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, lat, lon -> 
-                            locationInfo = full; rawCity = city; currentLat = lat; currentLon = lon
-                        }, { code, temp, tz, day, hourly, daily -> 
-                            weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
-                            isRefreshing = false
-                        })
-                    }
+                    performFetch(false, loc.latitude, loc.longitude)
                 }
                 override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
                 override fun onProviderEnabled(p: String) {}
@@ -146,46 +207,15 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
             }
             try {
                 lm.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 2000L, 1f, listener)
-                // Trigger an initial fetch
-                val lastLoc = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
-                scope.launch {
-                    isRefreshing = true
-                    fetchLocationAndWeather(context, true, lastLoc?.latitude, lastLoc?.longitude, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, lat, lon -> 
-                        locationInfo = full; rawCity = city; currentLat = lat; currentLon = lon
-                    }, { code, temp, tz, day, hourly, daily -> 
-                        weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
-                        isRefreshing = false
-                    })
-                }
             } catch (e: SecurityException) { }
-
             onDispose { lm.removeUpdates(listener) }
         } else {
-            // Initial fetch for manual mode
-            scope.launch {
-                isRefreshing = true
-                fetchLocationAndWeather(context, false, currentLat, currentLon, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, lat, lon -> 
-                    locationInfo = full; rawCity = city; currentLat = lat; currentLon = lon
-                }, { code, temp, tz, day, hourly, daily -> 
-                    weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
-                    isRefreshing = false
-                })
-            }
             onDispose { }
         }
     }
 
     val refreshAction = {
-        scope.launch {
-            isRefreshing = true
-            temperature = null
-            fetchLocationAndWeather(context, useGps, currentLat, currentLon, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, lat, lon -> 
-                locationInfo = full; rawCity = city; currentLat = lat; currentLon = lon
-            }, { code, temp, tz, day, hourly, daily -> 
-                weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
-                isRefreshing = false
-            })
-        }
+        performFetch(useGps, currentLat, currentLon)
         Unit
     }
 
@@ -193,16 +223,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         if (useGps) {
             mapErrorMessage = ctx.getString(R.string.gps_error)
         } else {
-            scope.launch {
-                isRefreshing = true
-                temperature = null
-                fetchLocationAndWeather(context, false, lat, lon, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, flat, flon -> 
-                    locationInfo = full; rawCity = city; currentLat = flat; currentLon = flon
-                }, { code, temp, tz, day, hourly, daily -> 
-                    weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
-                    isRefreshing = false
-                })
-            }
+            temperature = null
+            performFetch(false, lat, lon)
         }
         Unit
     }
@@ -235,7 +257,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         if (temperature != null) {
             val displayTime = formatTime(Date(), timezoneId, appLanguage.locale, is24Hour)
             val displayTemp = convertTemperature(temperature!!, isCelsius)
-            val unitName = if (isCelsius) (if(appLanguage == AppLanguage.FR) "degrés Celsius" else "degrees Celsius") 
+            val unitName = if (isCelsius) (if(appLanguage == AppLanguage.FR) "degrés Celsius" else "degrees Celsius")
                        else (if(appLanguage == AppLanguage.FR) "degrés Fahrenheit" else "degrees Fahrenheit")
             val isNegative = displayTemp < 0
             val absTempStr = String.format("%.1f", abs(displayTemp))
@@ -243,7 +265,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
             val condition = getConditionString(ctx, weatherCode)
             val speechText = when(appLanguage) {
-                AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec une température de $minusPrefix$absTempStr $unitName."
+                AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec eine température de $minusPrefix$absTempStr $unitName."
                 AppLanguage.JA -> "現在時刻は $displayTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。"
                 AppLanguage.ES -> "Son las $displayTime en $rawCity. El clima es $condition con una temperatura de $minusPrefix$absTempStr grados."
                 AppLanguage.DE -> "Es ist $displayTime in $rawCity. Das Wetter ist $condition bei einer Temperatur von $minusPrefix$absTempStr Grad."
@@ -276,8 +298,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                 isCelsius = isCelsius,
                 onCelsiusChange = { isCelsius = it },
                 currentLanguage = appLanguage,
-                onLanguageChange = { 
-                    appLanguage = it 
+                onLanguageChange = {
+                    appLanguage = it
                     refreshAction()
                 },
                 useGps = useGps,
@@ -285,13 +307,13 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                 is24Hour = is24Hour,
                 on24HourChange = { is24Hour = it },
                 hourlyRange = hourlyRange,
-                onHourlyRangeChange = { 
-                    hourlyRange = it 
+                onHourlyRangeChange = {
+                    hourlyRange = it
                     refreshAction()
                 },
                 dailyRange = dailyRange,
-                onDailyRangeChange = { 
-                    dailyRange = it 
+                onDailyRangeChange = {
+                    dailyRange = it
                     refreshAction()
                 },
                 onDismiss = { showSettings = false }
@@ -309,7 +331,7 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
         if (useGps) {
             val fused = LocationServices.getFusedLocationProviderClient(context)
             var location: android.location.Location? = null
-            
+
             // Try 1: Proper non-blocking suspend await for current location
             try {
                 location = kotlinx.coroutines.withTimeoutOrNull(5000L) {
@@ -345,7 +367,7 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
                 return
             }
         }
-        
+
         // Non-blocking Geocoding
         val address = withContext(Dispatchers.IO) {
             try {
@@ -356,12 +378,12 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
                     val a = addrs!![0]; val city = a.locality ?: a.subAdminArea ?: "??"; val country = a.countryName ?: "??"
                     Pair("$city, $country\n(${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)})", "$city, $country")
                 } else Pair("${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)}", getLocalizedContext(context, lang).getString(R.string.unknown))
-            } catch (e: Exception) { 
+            } catch (e: Exception) {
                 Pair("${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)}", getLocalizedContext(context, lang).getString(R.string.unknown))
             }
         }
         onLoc(address.first, address.second, finalLat, finalLon)
-        
+
         // Non-blocking Retrofit
         val neededDays = maxOf(1, (hourlyRange + 23) / 24, dailyRange + 1)
         val res = try {
@@ -389,8 +411,8 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
         }
 
         onWeather(res.current_weather.weathercode, res.current_weather.temperature, res.timezone, res.current_weather.is_day, hourlyList, dailyList)
-    } catch (e: Exception) { 
-        onLoc("Error: ${e.message}", "Error", 0.0, 0.0) 
+    } catch (e: Exception) {
+        onLoc("Error: ${e.message}", "Error", 0.0, 0.0)
         onWeather(0, -999.0, "UTC", 1, emptyList(), emptyList())
     }
 }

@@ -50,17 +50,17 @@ fun SettingsDialog(
             Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
                 Text(ctx.getString(R.string.settings), fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(24.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.unit), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium); Text("°C"); Switch(checked = !isCelsius, onCheckedChange = { onCelsiusChange(!it) }, modifier = Modifier.scale(0.8f).testTag("switch_unit")); Text("°F")
                 }
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.time_format), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium); Text("12h"); Switch(checked = is24Hour, onCheckedChange = { on24HourChange(it) }, modifier = Modifier.scale(0.8f).testTag("switch_time")); Text("24h")
                 }
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
-                
+
                 var expanded by remember { mutableStateOf(false) }
                 Text(ctx.getString(R.string.language), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
@@ -71,7 +71,7 @@ fun SettingsDialog(
                     }
                 }
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.loc_mode), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text(ctx.getString(R.string.gps), fontSize = 12.sp, color = if(useGps) MaterialTheme.colorScheme.primary else Color.Gray)
@@ -112,7 +112,7 @@ data class DailyForecastData(val isoDate: String, val code: Int, val minTemp: Do
 
 @Composable
 fun HourlyForecastRow(forecasts: List<HourlyForecastData>, isC: Boolean, lang: AppLanguage, is24h: Boolean) {
-    LazyRow(contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    LazyRow(modifier = Modifier.testTag("hourly_forecast_list"), contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(forecasts) { item ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(formatForecastHour(item.isoTime, lang.locale, is24h), fontSize = 12.sp, color = Color.White)
@@ -168,7 +168,7 @@ fun HorizontalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: I
 
     Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(0.4f).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SectionTimeWeather(code, day, temp, isC, lang, timezoneId, is24h) 
+            SectionTimeWeather(code, day, temp, isC, lang, timezoneId, is24h)
             if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
             if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang)
             IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings", tint = Color.White) }
@@ -180,20 +180,20 @@ fun HorizontalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: I
                 Text(text = locationInfo.substringAfter("\n", ""), fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.testTag("location_coords"))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (useGps) {
-                        Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.height(32.dp).testTag("btn_refresh")) { 
+                        Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.height(32.dp).testTag("btn_refresh")) {
                             Icon(
-                                Icons.Rounded.Refresh, 
-                                null, 
+                                Icons.Rounded.Refresh,
+                                null,
                                 Modifier.size(16.dp).graphicsLayer { rotationZ = if (isRefreshing) rotation else 0f },
                                 tint = Color.White
                             )
-                            Text(ctx.getString(R.string.refresh), fontSize = 12.sp) 
+                            Text(ctx.getString(R.string.refresh), fontSize = 12.sp)
                         }
                         Spacer(Modifier.width(8.dp))
                     }
-                    Button(onClick = onSpeak, modifier = Modifier.height(32.dp)) { 
+                    Button(onClick = onSpeak, modifier = Modifier.height(32.dp)) {
                         Icon(Icons.AutoMirrored.Rounded.VolumeUp, null, Modifier.size(16.dp))
-                        Text(ctx.getString(R.string.speak), fontSize = 12.sp) 
+                        Text(ctx.getString(R.string.speak), fontSize = 12.sp)
                     }
                 }
             }
@@ -233,10 +233,14 @@ fun SectionTimeWeather(code: Int, day: Int, temp: Double?, isC: Boolean, lang: A
         SectionTimeDisplay(timezoneId, lang, is24h)
         Spacer(Modifier.height(16.dp))
         Icon(getWeatherIcon(code, day), null, Modifier.size(100.dp), Color.White)
-        if (temp != null) {
-            Text("${String.format("%.1f", convertTemperature(temp, isC))}${if(isC) "°C" else "°F"}", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(getConditionString(ctx, code), fontSize = 20.sp, color = Color.White.copy(alpha = 0.9f))
-        } else { Text(ctx.getString(R.string.loading), color = Color.White) }
+        Box(modifier = Modifier.testTag("current_temp"), contentAlignment = Alignment.Center) {
+            if (temp != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("${String.format("%.1f", convertTemperature(temp, isC))}${if(isC) "°C" else "°F"}", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(getConditionString(ctx, code), fontSize = 20.sp, color = Color.White.copy(alpha = 0.9f))
+                }
+            } else { Text(ctx.getString(R.string.loading), color = Color.White) }
+        }
     }
 }
 
@@ -263,22 +267,22 @@ fun SectionControls(perm: Boolean, loc: String, useGps: Boolean, lang: AppLangua
             Spacer(Modifier.height(12.dp))
             Row {
                 if (useGps) {
-                    Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.testTag("btn_refresh")) { 
+                    Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.testTag("btn_refresh")) {
                         Icon(
-                            Icons.Rounded.Refresh, 
-                            null, 
+                            Icons.Rounded.Refresh,
+                            null,
                             Modifier.size(18.dp).graphicsLayer { rotationZ = if (isRefreshing) rotation else 0f },
                             tint = Color.White
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(ctx.getString(R.string.refresh)) 
+                        Text(ctx.getString(R.string.refresh))
                     }
                     Spacer(Modifier.width(12.dp))
                 }
-                Button(onClick = onSpeak) { 
+                Button(onClick = onSpeak) {
                     Icon(Icons.AutoMirrored.Rounded.VolumeUp, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(ctx.getString(R.string.speak)) 
+                    Text(ctx.getString(R.string.speak))
                 }
             }
         }
