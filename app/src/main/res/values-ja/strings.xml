@@ -16,7 +16,9 @@
     <string name="time_format">時間形式</string>
     <string name="loc_mode">モード</string>
     <string name="gps">GPS</string>
-    <string name="map_click">地図</string>
+    <string name="map_click">マップ</string>
+    <string name="hourly_range_label">時間ごとの予報: %1$d 時間</string>
+    <string name="daily_range_label">日ごとの予報: %1$d 日</string>
     <string name="unknown">不明</string>
     <string name="minus">マイナス</string>
     <string name="weather_clear">快晴</string>

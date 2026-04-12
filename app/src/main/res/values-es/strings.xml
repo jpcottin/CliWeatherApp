@@ -17,6 +17,8 @@
     <string name="loc_mode">Modo</string>
     <string name="gps">GPS</string>
     <string name="map_click">Mapa</string>
+    <string name="hourly_range_label">Pronóstico por hora: %1$d horas</string>
+    <string name="daily_range_label">Pronóstico diario: %1$d días</string>
     <string name="unknown">Desconocido</string>
     <string name="minus">menos</string>
     <string name="weather_clear">Cielo despejado</string>

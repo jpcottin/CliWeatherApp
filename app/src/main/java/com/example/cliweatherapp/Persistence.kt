@@ -29,4 +29,10 @@ class PreferenceManager(context: Context) {
 
     fun saveIs24Hour(value: Boolean) = prefs.edit().putBoolean("is_24h", value).apply()
     fun getIs24Hour(context: Context) = prefs.getBoolean("is_24h", DateFormat.is24HourFormat(context))
+
+    fun saveHourlyRange(value: Int) = prefs.edit().putInt("hourly_range", value).apply()
+    fun getHourlyRange() = prefs.getInt("hourly_range", 6)
+
+    fun saveDailyRange(value: Int) = prefs.edit().putInt("daily_range", value).apply()
+    fun getDailyRange() = prefs.getInt("daily_range", 6)
 }

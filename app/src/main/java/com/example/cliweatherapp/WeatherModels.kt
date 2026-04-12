@@ -28,7 +28,8 @@ interface WeatherApi {
         @retrofit2.http.Query("current_weather") current: Boolean = true,
         @retrofit2.http.Query("hourly") hourly: String = "temperature_2m,weathercode,is_day",
         @retrofit2.http.Query("daily") daily: String = "weathercode,temperature_2m_max,temperature_2m_min",
-        @retrofit2.http.Query("timezone") timezone: String = "auto"
+        @retrofit2.http.Query("timezone") timezone: String = "auto",
+        @retrofit2.http.Query("forecast_days") days: Int = 16
     ): WeatherResponse
 }
 

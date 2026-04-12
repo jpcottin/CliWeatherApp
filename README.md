@@ -6,8 +6,8 @@ CliWeatherApp is a robust, modern Android weather application built with Jetpack
 
 *   **Comprehensive Weather Data**: Instant access to current temperature, weather conditions, and icons.
 *   **Detailed Forecasts**:
-    *   **6-Hour Forecast**: Hourly temperature and condition breakdown.
-    *   **6-Day Forecast**: Daily high/low ranges for the upcoming week.
+    *   **Customizable Hourly Forecast**: Display from **0 to 168 hours** of upcoming temperature and condition data.
+    *   **Customizable Daily Forecast**: View from **0 to 16 days** of daily high/low ranges.
 *   **Dual-Mode Location Support**:
     *   **Interactive World Map**: Tap anywhere on the high-precision map to fetch weather for that specific coordinate.
     *   **Real-time GPS**: Automatic tracking of your device's movement. Fully compatible with `adb emu geo fix` for emulator testing.
@@ -27,6 +27,7 @@ Tailor the app to your preferences with a comprehensive settings suite:
     *   Español (Spanish)
     *   Deutsch (German)
     *   日本語 (Japanese)
+*   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-16d) forecast rows using intuitive sliders.
 *   **Location Mode**: Switch between **Map Mode** (fixed point) and **GPS Mode** (continuous tracking).
 
 ## 🔒 Permissions
@@ -41,8 +42,9 @@ The app requests minimal permissions to ensure user privacy while providing full
 
 CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all weather data.
 *   **Transparency**: No API keys are required for standard usage.
+*   **Query Optimization**: The app dynamically calculates the minimum required number of forecast days (up to 16) based on your selected hourly and daily ranges to minimize network payload and ensure snappier updates.
 *   **Data Points**: The app fetches `hourly=temperature_2m,weathercode,is_day` and `daily=weathercode,temperature_2m_max,temperature_2m_min`.
-*   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names.
+*   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names, localized instantly to your selected app language.
 
 ## 🛠 Technology Stack
 

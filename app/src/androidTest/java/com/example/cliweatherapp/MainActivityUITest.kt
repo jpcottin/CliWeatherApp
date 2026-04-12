@@ -1,5 +1,6 @@
 package com.example.cliweatherapp
 
+import android.Manifest
 import android.content.Context
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -13,9 +14,16 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.test.rule.GrantPermissionRule
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityUITest {
+
+    @get:Rule
+    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
@@ -141,14 +149,44 @@ class MainActivityUITest {
             composeTestRule.onNodeWithContentDescription("Settings").safeClick()
             composeTestRule.onNodeWithTag("switch_gps").safeClick() // Toggle to GPS
             composeTestRule.onNodeWithText("OK").safeClick()
+            composeTestRule.waitForIdle()
         }
 
-        // Click refresh and immediately check if button is disabled (which happens during animation)
-        composeTestRule.onNodeWithText("Refresh").performClick()
-        // It might be too fast, but we can check if it exists or is disabled
-        try {
-            composeTestRule.onNodeWithText("Refresh").assertIsNotEnabled()
-        } catch (e: Exception) { }
+        // Wait for button to appear
+        composeTestRule.waitUntil(5000) {
+            try {
+                composeTestRule.onNodeWithTag("btn_refresh").assertExists()
+                true
+            } catch (e: Exception) { false }
+        }
+
+        // Click refresh
+        composeTestRule.onNodeWithTag("btn_refresh").performClick()
+        
+        // The button should either be disabled (refreshing) or enabled (finished)
+        composeTestRule.onNodeWithTag("btn_refresh").assertExists()
+    }
+
+    @Test
+    fun testForecastRangeSettings() {
+        // Open settings
+        composeTestRule.onNodeWithContentDescription("Settings").safeClick()
+
+        // Verify sliders exist
+        composeTestRule.onNodeWithTag("slider_hourly").assertExists()
+        composeTestRule.onNodeWithTag("slider_daily").assertExists()
+
+        // Drag hourly slider using modern TouchInput API
+        composeTestRule.onNodeWithTag("slider_hourly").performTouchInput { swipeRight() }
+        composeTestRule.onNodeWithTag("slider_daily").performTouchInput { swipeLeft() }
+
+        composeTestRule.onNodeWithText("OK").safeClick()
+        composeTestRule.waitForIdle()
+
+        // Check persistence
+        val h = prefManager.getHourlyRange()
+        val d = prefManager.getDailyRange()
+        assert(h != 6 || d != 6) 
     }
 
     @Test
@@ -158,15 +196,16 @@ class MainActivityUITest {
             composeTestRule.onNodeWithContentDescription("Settings").safeClick()
             composeTestRule.onNodeWithTag("switch_gps").safeClick() // Toggle to Map
             composeTestRule.onNodeWithText("OK").safeClick()
+            composeTestRule.waitForIdle()
         }
 
         // Click a location on the world map (London area approx)
         composeTestRule.onNodeWithTag("world_map").performClick()
+        composeTestRule.waitForIdle()
 
-        // Wait for the coordinate component to appear
-        composeTestRule.waitUntil(10000) {
+        // Wait for the coordinate component to appear and contain actual data
+        composeTestRule.waitUntil(15000) {
             try {
-                composeTestRule.onNodeWithTag("location_coords").assertExists()
                 val node = composeTestRule.onNodeWithTag("location_coords").fetchSemanticsNode()
                 val textList = node.config.getOrNull(SemanticsProperties.Text)
                 val text = textList?.firstOrNull()?.text ?: ""

@@ -18,6 +18,8 @@
     <string name="loc_mode">Mode</string>
     <string name="gps">GPS</string>
     <string name="map_click">Map</string>
+    <string name="hourly_range_label">Hourly Range: %1$d hours</string>
+    <string name="daily_range_label">Daily Range: %1$d days</string>
     <string name="unknown">Unknown</string>
     <string name="minus">minus</string>
     <string name="weather_clear">Clear Sky</string>

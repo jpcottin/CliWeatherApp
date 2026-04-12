@@ -33,21 +33,32 @@ import androidx.compose.ui.window.Dialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsDialog(isCelsius: Boolean, onCelsiusChange: (Boolean) -> Unit, currentLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit, useGps: Boolean, onGpsChange: (Boolean) -> Unit, is24Hour: Boolean, on24HourChange: (Boolean) -> Unit, onDismiss: () -> Unit) {
+fun SettingsDialog(
+    isCelsius: Boolean, onCelsiusChange: (Boolean) -> Unit,
+    currentLanguage: AppLanguage, onLanguageChange: (AppLanguage) -> Unit,
+    useGps: Boolean, onGpsChange: (Boolean) -> Unit,
+    is24Hour: Boolean, on24HourChange: (Boolean) -> Unit,
+    hourlyRange: Int, onHourlyRangeChange: (Int) -> Unit,
+    dailyRange: Int, onDailyRangeChange: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
     val ctx = getLocalizedContext(LocalContext.current, currentLanguage)
     Dialog(onDismissRequest = onDismiss) {
         Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)) {
             Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
                 Text(ctx.getString(R.string.settings), fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(24.dp))
+                
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.unit), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium); Text("°C"); Switch(checked = !isCelsius, onCheckedChange = { onCelsiusChange(!it) }, modifier = Modifier.scale(0.8f).testTag("switch_unit")); Text("°F")
                 }
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+                
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.time_format), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium); Text("12h"); Switch(checked = is24Hour, onCheckedChange = { on24HourChange(it) }, modifier = Modifier.scale(0.8f).testTag("switch_time")); Text("24h")
                 }
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+                
                 var expanded by remember { mutableStateOf(false) }
                 Text(ctx.getString(R.string.language), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
@@ -58,12 +69,36 @@ fun SettingsDialog(isCelsius: Boolean, onCelsiusChange: (Boolean) -> Unit, curre
                     }
                 }
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+                
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.loc_mode), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text(ctx.getString(R.string.gps), fontSize = 12.sp, color = if(useGps) MaterialTheme.colorScheme.primary else Color.Gray)
                     Switch(checked = !useGps, onCheckedChange = { onGpsChange(!it) }, modifier = Modifier.scale(0.8f).testTag("switch_gps"))
                     Text(ctx.getString(R.string.map_click), fontSize = 12.sp, color = if(!useGps) MaterialTheme.colorScheme.primary else Color.Gray)
                 }
+                Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+
+                // Hourly Range Slider
+                Text(String.format(ctx.getString(R.string.hourly_range_label), hourlyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                Slider(
+                    value = hourlyRange.toFloat(),
+                    onValueChange = { onHourlyRangeChange(it.toInt()) },
+                    valueRange = 0f..168f,
+                    steps = 167,
+                    modifier = Modifier.testTag("slider_hourly")
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // Daily Range Slider
+                Text(String.format(ctx.getString(R.string.daily_range_label), dailyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                Slider(
+                    value = dailyRange.toFloat(),
+                    onValueChange = { onDailyRangeChange(it.toInt()) },
+                    valueRange = 0f..16f,
+                    steps = 15,
+                    modifier = Modifier.testTag("slider_daily")
+                )
+
                 Spacer(Modifier.height(24.dp)); Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("OK") }
             }
         }
@@ -143,7 +178,7 @@ fun HorizontalLayout(currentTime: String, is24h: Boolean, perm: Boolean, code: I
                 Text(text = locationInfo.substringAfter("\n", ""), fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.testTag("location_coords"))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (useGps) {
-                        Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.height(32.dp)) { 
+                        Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.height(32.dp).testTag("btn_refresh")) { 
                             Icon(
                                 Icons.Rounded.Refresh, 
                                 null, 
@@ -209,7 +244,7 @@ fun SectionControls(perm: Boolean, loc: String, useGps: Boolean, lang: AppLangua
             Spacer(Modifier.height(12.dp))
             Row {
                 if (useGps) {
-                    Button(onClick = onRef, enabled = !isRefreshing) { 
+                    Button(onClick = onRef, enabled = !isRefreshing, modifier = Modifier.testTag("btn_refresh")) { 
                         Icon(
                             Icons.Rounded.Refresh, 
                             null, 
