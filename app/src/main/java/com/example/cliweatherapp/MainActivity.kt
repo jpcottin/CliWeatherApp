@@ -96,7 +96,6 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var isDay by remember { mutableIntStateOf(1) }
     var temperature by remember { mutableStateOf<Double?>(null) }
     var timezoneId by remember { mutableStateOf<String?>(null) }
-    var currentTime by remember { mutableStateOf("") }
     var mapErrorMessage by remember { mutableStateOf<String?>(null) }
     var hourlyForecasts by remember { mutableStateOf<List<HourlyForecastData>>(emptyList()) }
     var dailyForecasts by remember { mutableStateOf<List<DailyForecastData>>(emptyList()) }
@@ -121,13 +120,6 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     LaunchedEffect(is24Hour) { prefManager.saveIs24Hour(is24Hour) }
     LaunchedEffect(hourlyRange) { prefManager.saveHourlyRange(hourlyRange) }
     LaunchedEffect(dailyRange) { prefManager.saveDailyRange(dailyRange) }
-
-    LaunchedEffect(timezoneId, appLanguage, is24Hour) {
-        while(true) {
-            currentTime = formatTime(Date(), timezoneId, appLanguage.locale, is24Hour)
-            delay(1000)
-        }
-    }
 
     LaunchedEffect(mapErrorMessage) {
         if (mapErrorMessage != null) { delay(2000); mapErrorMessage = null }
@@ -241,37 +233,40 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     val speakAction = {
         if (temperature != null) {
+            val displayTime = formatTime(Date(), timezoneId, appLanguage.locale, is24Hour)
             val displayTemp = convertTemperature(temperature!!, isCelsius)
             val unitName = if (isCelsius) (if(appLanguage == AppLanguage.FR) "degrés Celsius" else "degrees Celsius") 
                        else (if(appLanguage == AppLanguage.FR) "degrés Fahrenheit" else "degrees Fahrenheit")
             val isNegative = displayTemp < 0
             val absTempStr = String.format("%.1f", abs(displayTemp))
             val minusPrefix = if(isNegative) "${ctx.getString(R.string.minus)} " else ""
-            
+
             val condition = getConditionString(ctx, weatherCode)
             val speechText = when(appLanguage) {
-                AppLanguage.FR -> "Il est $currentTime à $rawCity. La météo est $condition avec une température de $minusPrefix$absTempStr $unitName."
-                AppLanguage.JA -> "現在時刻は $currentTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。"
-                AppLanguage.ES -> "Son las $currentTime en $rawCity. El clima es $condition con una temperatura de $minusPrefix$absTempStr grados."
-                AppLanguage.DE -> "Es ist $currentTime in $rawCity. Das Wetter ist $condition bei einer Temperatur von $minusPrefix$absTempStr Grad."
-                else -> "It is $currentTime in $rawCity. The weather is $condition with a temperature of $minusPrefix$absTempStr $unitName."
+                AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec une température de $minusPrefix$absTempStr $unitName."
+                AppLanguage.JA -> "現在時刻は $displayTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。"
+                AppLanguage.ES -> "Son las $displayTime en $rawCity. El clima es $condition con una temperatura de $minusPrefix$absTempStr grados."
+                AppLanguage.DE -> "Es ist $displayTime in $rawCity. Das Wetter ist $condition bei einer Temperatur von $minusPrefix$absTempStr Grad."
+                else -> "It is $displayTime in $rawCity. The weather is $condition with a temperature of $minusPrefix$absTempStr $unitName."
             }
             onSpeak(speechText, appLanguage.locale)
         }
     }
 
-    val bgColors = getBackgroundColors(weatherCode, isDay).map { colorResource(it) }
+    val bgColors = remember(weatherCode, isDay) {
+        getBackgroundColors(weatherCode, isDay)
+    }
+    val resolvedColors = bgColors.map { colorResource(it) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(bgColors)).statusBarsPadding()) {
+    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
-            VerticalLayout(currentTime, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
+            VerticalLayout(timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
             IconButton(onClick = { showSettings = true }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
                 Icon(Icons.Rounded.Settings, "Settings", tint = Color.White)
             }
         } else {
-            HorizontalLayout(currentTime, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, onOpenSettings = { showSettings = true })
+            HorizontalLayout(timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, onOpenSettings = { showSettings = true })
         }
-
         IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
             Icon(Icons.Rounded.Share, "Share", tint = Color.White)
         }
@@ -352,16 +347,19 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
         }
         
         // Non-blocking Geocoding
-        val addressJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).async {
-            try { android.location.Geocoder(context, lang.locale).getFromLocation(finalLat, finalLon, 1) } catch(e: Exception) { null }
+        val address = withContext(Dispatchers.IO) {
+            try {
+                val addrs = kotlinx.coroutines.withTimeoutOrNull(3000L) {
+                    android.location.Geocoder(context, lang.locale).getFromLocation(finalLat, finalLon, 1)
+                }
+                if (!addrs.isNullOrEmpty()) {
+                    val a = addrs!![0]; val city = a.locality ?: a.subAdminArea ?: "??"; val country = a.countryName ?: "??"
+                    Pair("$city, $country\n(${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)})", "$city, $country")
+                } else Pair("${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)}", getLocalizedContext(context, lang).getString(R.string.unknown))
+            } catch (e: Exception) { 
+                Pair("${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)}", getLocalizedContext(context, lang).getString(R.string.unknown))
+            }
         }
-        val address = try {
-            val addrs = kotlinx.coroutines.withTimeoutOrNull(2000L) { addressJob.await() }
-            if (!addrs.isNullOrEmpty()) {
-                val a = addrs!![0]; val city = a.locality ?: a.subAdminArea ?: "??"; val country = a.countryName ?: "??"
-                Pair("$city, $country\n(${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)})", "$city, $country")
-            } else Pair("${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)}", getLocalizedContext(context, lang).getString(R.string.unknown))
-        } catch (e: Exception) { Pair("${String.format("%.2f", finalLat)}, ${String.format("%.2f", finalLon)}", getLocalizedContext(context, lang).getString(R.string.unknown)) }
         onLoc(address.first, address.second, finalLat, finalLon)
         
         // Non-blocking Retrofit
