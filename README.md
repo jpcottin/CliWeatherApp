@@ -64,5 +64,15 @@ Quality is guaranteed through a multi-layered testing approach:
 *   **UI Automator**: Specialized tests for handling system-level dialogs (permissions) and hardware-level changes (device orientation).
 *   **State Persistence**: Tests ensure that your settings (language, units, location) are perfectly preserved across app restarts using `SharedPreferences`.
 
+## 🗺️ Assets & Attributions
+
+The interactive world map utilizes a composite satellite image of Earth to provide high-precision coordinate selection.
+
+*   **Source**: NASA's famous **"Blue Marble"** (2002 version: Land Surface, Shallow Water, and Shaded Topography).
+*   **Origin**: Created by the **NASA Goddard Space Flight Center** using data from the MODIS instrument aboard the **Terra satellite**.
+*   **Process**: A "cloud-free" mosaic stitched from months of observations to provide a clear view of every square kilometer of the planet.
+*   **Licensing**: This image is in the **Public Domain** (created by the U.S. Federal Government). It is free to use, modify, and distribute.
+*   **Verification**: This is a scientific composite based on actual satellite data, available via [NASA Visible Earth](https://visibleearth.nasa.gov/).
+
 ---
 *Created by Gemini CLI - 2026*
