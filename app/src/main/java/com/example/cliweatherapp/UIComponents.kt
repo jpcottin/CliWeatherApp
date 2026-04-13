@@ -108,7 +108,7 @@ fun SettingsDialog(
 }
 
 data class HourlyForecastData(val isoTime: String, val code: Int, val isDay: Int, val temp: Double)
-data class DailyForecastData(val isoDate: String, val code: Int, val minTemp: Double, val maxTemp: Double)
+data class DailyForecastData(val isoDate: String, val code: Int, val minTemp: Double, val maxTemp: Double, val sunrise: String, val sunset: String)
 
 @Composable
 fun HourlyForecastRow(forecasts: List<HourlyForecastData>, isC: Boolean, lang: AppLanguage, is24h: Boolean) {
@@ -126,7 +126,7 @@ fun HourlyForecastRow(forecasts: List<HourlyForecastData>, isC: Boolean, lang: A
 }
 
 @Composable
-fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: AppLanguage) {
+fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: AppLanguage, is24h: Boolean) {
     LazyRow(contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(forecasts) { item ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -135,6 +135,16 @@ fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: App
                 Icon(getWeatherIcon(item.code, 1), null, Modifier.size(32.dp), Color.White)
                 Spacer(Modifier.height(4.dp))
                 Text("${String.format("%.0f", convertTemperature(item.minTemp, isC))}° / ${String.format("%.0f", convertTemperature(item.maxTemp, isC))}°", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.WbSunny, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
+                    Spacer(Modifier.width(2.dp))
+                    Text(formatSunriseSunset(item.sunrise, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Rounded.NightlightRound, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
+                    Spacer(Modifier.width(2.dp))
+                    Text(formatSunriseSunset(item.sunset, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                }
             }
         }
     }
@@ -146,7 +156,7 @@ fun VerticalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int
     Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SectionTimeWeather(code, day, temp, isC, lang, timezoneId, is24h)
         if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
-        if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang)
+        if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
         SectionControls(perm, locationInfo, useGps, lang, isRefreshing, onRef, onSpeak, onPerm)
         MiniWorldMap(lat, lon, error, lang, onMap, Modifier.height(220.dp).fillMaxWidth().padding(horizontal = 16.dp))
     }
@@ -170,7 +180,7 @@ fun HorizontalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: I
         Column(modifier = Modifier.weight(0.4f).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             SectionTimeWeather(code, day, temp, isC, lang, timezoneId, is24h)
             if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
-            if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang)
+            if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
             IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings", tint = Color.White) }
         }
         Column(modifier = Modifier.weight(0.6f).fillMaxHeight().padding(start = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {

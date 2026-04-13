@@ -85,7 +85,7 @@ class MockWeatherRepository : WeatherRepository {
     ) {
         onLoc("Mock City, Test\n(45.00, 90.00)", "Mock City", 45.0, 90.0)
         val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${it%24}:00", 0, 1, 20.0 + it) }
-        val d = List(dailyRange) { DailyForecastData("2026-04-${12+it}", 0, 15.0, 25.0) }
+        val d = List(dailyRange) { DailyForecastData("2026-04-${12+it}", 0, 15.0, 25.0, "2026-04-12T06:00", "2026-04-12T18:00") }
         onWeather(0, 22.5, "UTC", 1, h, d)
     }
 }
@@ -143,6 +143,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var mapErrorMessage by remember { mutableStateOf<String?>(null) }
     var hourlyForecasts by remember { mutableStateOf<List<HourlyForecastData>>(emptyList()) }
     var dailyForecasts by remember { mutableStateOf<List<DailyForecastData>>(emptyList()) }
+    var apiCallCount by remember { mutableIntStateOf(0) }
 
     val ctx = getLocalizedContext(context, appLanguage)
 
@@ -181,6 +182,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     }
 
     val performFetch: (Boolean, Double?, Double?) -> Unit = { gps, lat, lon ->
+        apiCallCount++
+        android.util.Log.d("API_COUNT", "Fetching weather data (Total calls: $apiCallCount)")
         isRefreshing = true
         repo.fetch(scope, context, gps, lat, lon, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, flat, flon ->
             locationInfo = full; rawCity = city; currentLat = flat; currentLon = flon
@@ -189,29 +192,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
             isRefreshing = false
         })
     }
-
     LaunchedEffect(Unit) {
         performFetch(useGps, currentLat, currentLon)
-    }
-
-    DisposableEffect(permissionGranted, useGps) {
-        if (useGps && permissionGranted) {
-            val lm = context.getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
-            val listener = object : android.location.LocationListener {
-                override fun onLocationChanged(loc: android.location.Location) {
-                    performFetch(false, loc.latitude, loc.longitude)
-                }
-                override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
-                override fun onProviderEnabled(p: String) {}
-                override fun onProviderDisabled(p: String) {}
-            }
-            try {
-                lm.requestLocationUpdates(android.location.LocationManager.GPS_PROVIDER, 2000L, 1f, listener)
-            } catch (e: SecurityException) { }
-            onDispose { lm.removeUpdates(listener) }
-        } else {
-            onDispose { }
-        }
     }
 
     val refreshAction = {
@@ -406,7 +388,7 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
         val dailyList = mutableListOf<DailyForecastData>()
         res.daily?.let { d ->
             for (i in 1 until minOf(1 + dailyRange, d.time.size)) {
-                dailyList.add(DailyForecastData(d.time[i], d.weathercode[i], d.temperature_2m_min[i], d.temperature_2m_max[i]))
+                dailyList.add(DailyForecastData(d.time[i], d.weathercode[i], d.temperature_2m_min[i], d.temperature_2m_max[i], d.sunrise[i], d.sunset[i]))
             }
         }
 

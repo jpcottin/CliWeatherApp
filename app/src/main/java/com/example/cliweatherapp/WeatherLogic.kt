@@ -6,15 +6,15 @@ import androidx.compose.material.icons.rounded.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-fun getWeatherIcon(code: Int, isDay: Int) = when (code) { 
+fun getWeatherIcon(code: Int, isDay: Int) = when (code) {
     0 -> if(isDay == 1) Icons.Rounded.WbSunny else Icons.Rounded.NightsStay
     1, 2, 3 -> if(isDay == 1) Icons.Rounded.Cloud else Icons.Rounded.CloudQueue
-    45, 48 -> Icons.Rounded.Air; 51, 53, 55 -> Icons.Rounded.WaterDrop; 61, 63, 65 -> Icons.Rounded.Umbrella; 71, 73, 75 -> Icons.Rounded.AcUnit; else -> Icons.Rounded.Thunderstorm 
+    45, 48 -> Icons.Rounded.Air; 51, 53, 55 -> Icons.Rounded.WaterDrop; 61, 63, 65 -> Icons.Rounded.Umbrella; 71, 73, 75 -> Icons.Rounded.AcUnit; else -> Icons.Rounded.Thunderstorm
 }
 
 fun getBackgroundColors(code: Int, isDay: Int): List<Int> {
     if (isDay == 0) return listOf(R.color.night_blue, R.color.night_dark_blue)
-    return when (code) { 
+    return when (code) {
         0 -> listOf(R.color.sunny_orange, R.color.sunny_yellow)
         1, 2, 3 -> listOf(R.color.cloudy_blue, R.color.cloudy_light_blue)
         45, 48 -> listOf(R.color.foggy_grey, R.color.foggy_light_grey)
@@ -58,6 +58,15 @@ fun formatForecastHour(isoTime: String, l: Locale, is24h: Boolean): String {
         val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US)
         val date = parser.parse(isoTime) ?: return isoTime
         val pattern = if (is24h) "HH:mm" else "h a"
+        return SimpleDateFormat(pattern, l).format(date)
+    } catch (e: Exception) { return isoTime }
+}
+
+fun formatSunriseSunset(isoTime: String, l: Locale, is24h: Boolean): String {
+    try {
+        val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US)
+        val date = parser.parse(isoTime) ?: return isoTime
+        val pattern = if (is24h) "HH:mm" else "h:mm a"
         return SimpleDateFormat(pattern, l).format(date)
     } catch (e: Exception) { return isoTime }
 }
