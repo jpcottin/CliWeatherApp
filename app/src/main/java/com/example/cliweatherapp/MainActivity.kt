@@ -157,15 +157,20 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         getLocalizedContext(context, appLanguage)
     }
 
-    LaunchedEffect(Unit) {
-        while(true) {
-            val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            if (isGranted != permissionGranted) {
-                permissionGranted = isGranted
+    // Replace the 1-second loop with a Lifecycle observer for better performance
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val isGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                if (isGranted != permissionGranted) {
+                    permissionGranted = isGranted
+                }
             }
-            delay(1000)
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
@@ -197,7 +202,11 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     }
 
     LaunchedEffect(Unit) {
+        android.util.Log.d("API_COUNT", "Startup effect triggered. Waiting 2s for UI stability...")
+        delay(2000)
+        android.util.Log.d("API_COUNT", "Starting initial fetch (GPS: $useGps)...")
         performFetch(useGps, currentLat, currentLon)
+        android.util.Log.d("API_COUNT", "Initial fetch call completed.")
     }
 
     val refreshAction = {

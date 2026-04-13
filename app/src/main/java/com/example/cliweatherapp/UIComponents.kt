@@ -212,20 +212,21 @@ fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Bo
 
 @Composable
 fun SectionTimeDisplay(ctx: Context, timezoneId: String?, lang: AppLanguage, is24h: Boolean) {
-    var currentTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(Date(), timezoneId, lang.locale, is24h)) }
+    var rawTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(Date(), timezoneId, lang.locale, is24h)) }
 
     LaunchedEffect(timezoneId, lang, is24h) {
         while (true) {
-            currentTime = formatTime(Date(), timezoneId, lang.locale, is24h)
+            rawTime = formatTime(Date(), timezoneId, lang.locale, is24h)
             delay(1000)
         }
     }
 
+    val digits = remember(rawTime, is24h) { if (!is24h) rawTime.substringBeforeLast(" ") else rawTime }
+    val suffix = remember(rawTime, is24h) { if (!is24h) rawTime.substringAfterLast(" ") else "" }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(ctx.getString(R.string.current_time), fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
         Row(verticalAlignment = Alignment.Bottom) {
-            val digits = if (!is24h) currentTime.substringBeforeLast(" ") else currentTime
-            val suffix = if (!is24h) currentTime.substringAfterLast(" ") else ""
             Text(digits, fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
             if (suffix.isNotEmpty()) {
                 Text(" $suffix", fontSize = 18.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.9f), modifier = Modifier.padding(bottom = 8.dp))
