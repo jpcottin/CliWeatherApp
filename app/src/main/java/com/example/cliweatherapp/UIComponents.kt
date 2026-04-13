@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import android.content.Context
 import java.util.Date
 import kotlinx.coroutines.delay
 
@@ -151,20 +152,18 @@ fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: App
 }
 
 @Composable
-fun VerticalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit) {
-    val ctx = getLocalizedContext(LocalContext.current, lang)
+fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SectionTimeWeather(code, day, temp, isC, lang, timezoneId, is24h)
+        SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
         if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
         if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
-        SectionControls(perm, locationInfo, useGps, lang, isRefreshing, onRef, onSpeak, onPerm)
-        MiniWorldMap(lat, lon, error, lang, onMap, Modifier.height(220.dp).fillMaxWidth().padding(horizontal = 16.dp))
+        SectionControls(ctx, perm, locationInfo, useGps, lang, isRefreshing, onRef, onSpeak, onPerm)
+        MiniWorldMap(ctx, lat, lon, error, lang, onMap, Modifier.height(220.dp).fillMaxWidth().padding(horizontal = 16.dp))
     }
 }
 
 @Composable
-fun HorizontalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, onOpenSettings: () -> Unit) {
-    val ctx = getLocalizedContext(LocalContext.current, lang)
+fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, onOpenSettings: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -178,13 +177,13 @@ fun HorizontalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: I
 
     Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(0.4f).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SectionTimeWeather(code, day, temp, isC, lang, timezoneId, is24h)
+            SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
             if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
             if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
             IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings", tint = Color.White) }
         }
         Column(modifier = Modifier.weight(0.6f).fillMaxHeight().padding(start = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
-            MiniWorldMap(lat, lon, error, lang, onMap, Modifier.weight(0.7f).fillMaxWidth())
+            MiniWorldMap(ctx, lat, lon, error, lang, onMap, Modifier.weight(0.7f).fillMaxWidth())
             Column(modifier = Modifier.weight(0.3f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Text(text = locationInfo.substringBefore("\n"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center, maxLines = 1)
                 Text(text = locationInfo.substringAfter("\n", ""), fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.testTag("location_coords"))
@@ -212,9 +211,8 @@ fun HorizontalLayout(timezoneId: String?, is24h: Boolean, perm: Boolean, code: I
 }
 
 @Composable
-fun SectionTimeDisplay(timezoneId: String?, lang: AppLanguage, is24h: Boolean) {
+fun SectionTimeDisplay(ctx: Context, timezoneId: String?, lang: AppLanguage, is24h: Boolean) {
     var currentTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(Date(), timezoneId, lang.locale, is24h)) }
-    val ctx = getLocalizedContext(LocalContext.current, lang)
 
     LaunchedEffect(timezoneId, lang, is24h) {
         while (true) {
@@ -237,10 +235,9 @@ fun SectionTimeDisplay(timezoneId: String?, lang: AppLanguage, is24h: Boolean) {
 }
 
 @Composable
-fun SectionTimeWeather(code: Int, day: Int, temp: Double?, isC: Boolean, lang: AppLanguage, timezoneId: String?, is24h: Boolean) {
-    val ctx = getLocalizedContext(LocalContext.current, lang)
+fun SectionTimeWeather(ctx: Context, code: Int, day: Int, temp: Double?, isC: Boolean, lang: AppLanguage, timezoneId: String?, is24h: Boolean) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        SectionTimeDisplay(timezoneId, lang, is24h)
+        SectionTimeDisplay(ctx, timezoneId, lang, is24h)
         Spacer(Modifier.height(16.dp))
         Icon(getWeatherIcon(code, day), null, Modifier.size(100.dp), Color.White)
         Box(modifier = Modifier.testTag("current_temp"), contentAlignment = Alignment.Center) {
@@ -255,8 +252,7 @@ fun SectionTimeWeather(code: Int, day: Int, temp: Double?, isC: Boolean, lang: A
 }
 
 @Composable
-fun SectionControls(perm: Boolean, loc: String, useGps: Boolean, lang: AppLanguage, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit) {
-    val ctx = getLocalizedContext(LocalContext.current, lang)
+fun SectionControls(ctx: Context, perm: Boolean, loc: String, useGps: Boolean, lang: AppLanguage, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -300,8 +296,7 @@ fun SectionControls(perm: Boolean, loc: String, useGps: Boolean, lang: AppLangua
 }
 
 @Composable
-fun MiniWorldMap(lat: Double, lon: Double, error: String?, lang: AppLanguage, onMap: (Double, Double) -> Unit, modifier: Modifier = Modifier) {
-    val ctx = getLocalizedContext(LocalContext.current, lang)
+fun MiniWorldMap(ctx: Context, lat: Double, lon: Double, error: String?, lang: AppLanguage, onMap: (Double, Double) -> Unit, modifier: Modifier = Modifier) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
         Box(modifier = Modifier.height(20.dp)) {
             if (error != null) Text(error, color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -326,20 +321,19 @@ fun MiniWorldMap(lat: Double, lon: Double, error: String?, lang: AppLanguage, on
         }
     }
 }
-
 // --- Previews ---
 
 @Preview(showBackground = true, backgroundColor = 0xFF2196F3)
 @Composable
 fun PreviewWeatherSection() {
-    SectionTimeWeather(code = 0, day = 1, temp = 25.0, isC = true, lang = AppLanguage.EN, timezoneId = "UTC", is24h = false)
+    SectionTimeWeather(LocalContext.current, code = 0, day = 1, temp = 25.0, isC = true, lang = AppLanguage.EN, timezoneId = "UTC", is24h = false)
 }
 
 @Preview(showBackground = true, widthDp = 400, heightDp = 800, backgroundColor = 0xFF2196F3)
 @Composable
 fun PreviewVerticalLayout() {
     VerticalLayout(
-        timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
+        LocalContext.current, timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
         locationInfo = "Mountain View, United States\n(37.42, -122.08)", lat = 37.42, lon = -122.08,
         useGps = true, error = null, lang = AppLanguage.EN, hourly = emptyList(), daily = emptyList(),
         isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->}
@@ -350,7 +344,7 @@ fun PreviewVerticalLayout() {
 @Composable
 fun PreviewHorizontalLayout() {
     HorizontalLayout(
-        timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
+        LocalContext.current, timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
         locationInfo = "Mountain View, United States\n(37.42, -122.08)", lat = 37.42, lon = -122.08,
         useGps = true, error = null, lang = AppLanguage.EN, hourly = emptyList(), daily = emptyList(),
         isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->}, onOpenSettings = {}

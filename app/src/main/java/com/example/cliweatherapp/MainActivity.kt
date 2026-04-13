@@ -145,13 +145,16 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var dailyForecasts by remember { mutableStateOf<List<DailyForecastData>>(emptyList()) }
     var apiCallCount by remember { mutableIntStateOf(0) }
 
-    val ctx = getLocalizedContext(context, appLanguage)
-
     var permissionGranted by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         )
+    }
+
+    // Optimization: Only recreate context when language changes
+    val localizedContext = remember(context, appLanguage) {
+        getLocalizedContext(context, appLanguage)
     }
 
     LaunchedEffect(Unit) {
@@ -192,6 +195,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
             isRefreshing = false
         })
     }
+
     LaunchedEffect(Unit) {
         performFetch(useGps, currentLat, currentLon)
     }
@@ -203,7 +207,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     val onMapClick: (Double, Double) -> Unit = { lat, lon ->
         if (useGps) {
-            mapErrorMessage = ctx.getString(R.string.gps_error)
+            mapErrorMessage = localizedContext.getString(R.string.gps_error)
         } else {
             temperature = null
             performFetch(false, lat, lon)
@@ -229,7 +233,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                     putExtra(Intent.EXTRA_STREAM, contentUri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                context.startActivity(Intent.createChooser(intent, ctx.getString(R.string.share)))
+                context.startActivity(Intent.createChooser(intent, localizedContext.getString(R.string.share)))
             } catch (e: Exception) { e.printStackTrace() }
         }
         Unit
@@ -243,9 +247,9 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                        else (if(appLanguage == AppLanguage.FR) "degrés Fahrenheit" else "degrees Fahrenheit")
             val isNegative = displayTemp < 0
             val absTempStr = String.format("%.1f", abs(displayTemp))
-            val minusPrefix = if(isNegative) "${ctx.getString(R.string.minus)} " else ""
+            val minusPrefix = if(isNegative) "${localizedContext.getString(R.string.minus)} " else ""
 
-            val condition = getConditionString(ctx, weatherCode)
+            val condition = getConditionString(localizedContext, weatherCode)
             val speechText = when(appLanguage) {
                 AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec eine température de $minusPrefix$absTempStr $unitName."
                 AppLanguage.JA -> "現在時刻は $displayTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。"
@@ -264,12 +268,12 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
-            VerticalLayout(timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
+            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
             IconButton(onClick = { showSettings = true }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
                 Icon(Icons.Rounded.Settings, "Settings", tint = Color.White)
             }
         } else {
-            HorizontalLayout(timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, onOpenSettings = { showSettings = true })
+            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, onOpenSettings = { showSettings = true })
         }
         IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
             Icon(Icons.Rounded.Share, "Share", tint = Color.White)
@@ -303,6 +307,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         }
     }
 }
+
 
 @SuppressLint("MissingPermission")
 private suspend fun fetchLocationAndWeather(context: android.content.Context, useGps: Boolean, lat: Double?, lon: Double?, lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int, onLoc: (String, String, Double, Double) -> Unit, onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit) {
