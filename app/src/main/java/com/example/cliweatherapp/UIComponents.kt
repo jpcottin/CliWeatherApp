@@ -141,7 +141,8 @@ fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: App
                     Icon(Icons.Rounded.WbSunny, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
                     Spacer(Modifier.width(2.dp))
                     Text(formatSunriseSunset(item.sunrise, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
-                    Spacer(Modifier.width(6.dp))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.NightlightRound, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
                     Spacer(Modifier.width(2.dp))
                     Text(formatSunriseSunset(item.sunset, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
@@ -163,7 +164,7 @@ fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Bool
 }
 
 @Composable
-fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, onOpenSettings: () -> Unit) {
+fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit) {
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -180,7 +181,6 @@ fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Bo
             SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
             if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
             if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
-            IconButton(onClick = onOpenSettings) { Icon(Icons.Rounded.Settings, "Settings", tint = Color.White) }
         }
         Column(modifier = Modifier.weight(0.6f).fillMaxHeight().padding(start = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             MiniWorldMap(ctx, lat, lon, error, lang, onMap, Modifier.weight(0.7f).fillMaxWidth())
@@ -348,6 +348,6 @@ fun PreviewHorizontalLayout() {
         LocalContext.current, timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
         locationInfo = "Mountain View, United States\n(37.42, -122.08)", lat = 37.42, lon = -122.08,
         useGps = true, error = null, lang = AppLanguage.EN, hourly = emptyList(), daily = emptyList(),
-        isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->}, onOpenSettings = {}
+        isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->}
     )
 }

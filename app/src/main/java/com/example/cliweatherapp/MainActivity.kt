@@ -278,14 +278,14 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
             VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
-            IconButton(onClick = { showSettings = true }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
-                Icon(Icons.Rounded.Settings, "Settings", tint = Color.White)
-            }
         } else {
-            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, onOpenSettings = { showSettings = true })
+            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
         }
         IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
             Icon(Icons.Rounded.Share, "Share", tint = Color.White)
+        }
+        IconButton(onClick = { showSettings = true }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+            Icon(Icons.Rounded.Settings, "Settings", tint = Color.White)
         }
 
         if (showSettings) {
