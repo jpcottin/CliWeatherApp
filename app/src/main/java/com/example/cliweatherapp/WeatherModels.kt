@@ -11,7 +11,7 @@ enum class AppLanguage(val label: String, val locale: Locale) {
 }
 
 data class Hourly(val time: List<String>, val temperature_2m: List<Double>, val weathercode: List<Int>, val is_day: List<Int>?, val uv_index: List<Double>?)
-data class Daily(val time: List<String>, val weathercode: List<Int>, val temperature_2m_max: List<Double>, val temperature_2m_min: List<Double>, val sunrise: List<String>, val sunset: List<String>)
+data class Daily(val time: List<String>, val weathercode: List<Int>, val temperature_2m_max: List<Double>, val temperature_2m_min: List<Double>, val sunrise: List<String>, val sunset: List<String>, val uv_index_max: List<Double>?)
 data class WeatherResponse(val current_weather: CurrentWeather, val hourly: Hourly?, val daily: Daily?, val timezone: String)
 data class CurrentWeather(
     val temperature: Double,
@@ -27,7 +27,7 @@ interface WeatherApi {
         @retrofit2.http.Query("longitude") lon: Double,
         @retrofit2.http.Query("current_weather") current: Boolean = true,
         @retrofit2.http.Query("hourly") hourly: String = "temperature_2m,weathercode,is_day,uv_index",
-        @retrofit2.http.Query("daily") daily: String = "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset",
+        @retrofit2.http.Query("daily") daily: String = "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max",
         @retrofit2.http.Query("timezone") timezone: String = "auto",
         @retrofit2.http.Query("forecast_days") days: Int = 16
     ): WeatherResponse

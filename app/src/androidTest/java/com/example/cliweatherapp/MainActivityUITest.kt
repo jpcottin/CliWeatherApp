@@ -49,6 +49,8 @@ class MainActivityUITest {
     private var origIs24Hour: Boolean = true
     private var origHourlyRange: Int = 6
     private var origDailyRange: Int = 6
+    private var origShowUvIndex: Boolean = false
+    private var origShowAirQuality: Boolean = false
 
     @Before
     fun setUp() {
@@ -68,6 +70,8 @@ class MainActivityUITest {
         origIs24Hour = prefManager.getIs24Hour(context)
         origHourlyRange = prefManager.getHourlyRange()
         origDailyRange = prefManager.getDailyRange()
+        origShowUvIndex = prefManager.getShowUvIndex()
+        origShowAirQuality = prefManager.getShowAirQuality()
 
         // 3. Reset to known defaults BEFORE activity launch
         prefManager.saveIsCelsius(true)
@@ -76,6 +80,8 @@ class MainActivityUITest {
         prefManager.saveIs24Hour(true)
         prefManager.saveHourlyRange(6)
         prefManager.saveDailyRange(6)
+        prefManager.saveShowUvIndex(false)
+        prefManager.saveShowAirQuality(false)
 
         // 4. Launch Activity manually
         val intent = Intent(context, MainActivity::class.java)
@@ -91,6 +97,8 @@ class MainActivityUITest {
         prefManager.saveIs24Hour(origIs24Hour)
         prefManager.saveHourlyRange(origHourlyRange)
         prefManager.saveDailyRange(origDailyRange)
+        prefManager.saveShowUvIndex(origShowUvIndex)
+        prefManager.saveShowAirQuality(origShowAirQuality)
 
         scenario?.close()
         device.setOrientationNatural()

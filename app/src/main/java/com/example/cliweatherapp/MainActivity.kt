@@ -84,8 +84,8 @@ class MockWeatherRepository : WeatherRepository {
         onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
     ) {
         onLoc("Mock City, Test\n(45.00, 90.00)", "Mock City", 45.0, 90.0)
-        val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${it%24}:00", 0, 1, 20.0 + it) }
-        val d = List(dailyRange) { DailyForecastData("2026-04-${12+it}", 0, 15.0, 25.0, "2026-04-12T06:00", "2026-04-12T18:00") }
+        val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${String.format("%02d", it % 24)}:00", 0, 1, 20.0 + it, uvIndex = (it % 12).toDouble()) }
+        val d = List(dailyRange) { DailyForecastData("2026-04-${12 + it}", 0, 15.0, 25.0, "2026-04-12T06:00", "2026-04-12T18:00", uvIndexMax = 4.0 + it) }
         onWeather(0, 22.5, "UTC", 1, h, d, 3.0)
     }
 }
@@ -148,6 +148,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var dailyForecasts by remember { mutableStateOf<List<DailyForecastData>>(emptyList()) }
     var currentUvIndex by remember { mutableStateOf<Double?>(null) }
     var currentAirQuality by remember { mutableStateOf<Int?>(null) }
+    var aqiHourlyMap by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var apiCallCount by remember { mutableIntStateOf(0) }
 
     var permissionGranted by remember {
@@ -193,8 +194,14 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     LaunchedEffect(showUvIndex) { prefManager.saveShowUvIndex(showUvIndex) }
     LaunchedEffect(showAirQuality) { prefManager.saveShowAirQuality(showAirQuality) }
     LaunchedEffect(showAirQuality, currentLat, currentLon) {
-        if (showAirQuality) currentAirQuality = fetchCurrentAirQuality(currentLat, currentLon)
-        else currentAirQuality = null
+        if (showAirQuality) {
+            val (current, hourly) = fetchAirQuality(currentLat, currentLon)
+            currentAirQuality = current
+            aqiHourlyMap = hourly
+        } else {
+            currentAirQuality = null
+            aqiHourlyMap = emptyMap()
+        }
     }
 
     LaunchedEffect(mapErrorMessage) {
@@ -299,9 +306,9 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
-            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality)
+            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality, aqiHourlyMap)
         } else {
-            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality)
+            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality, aqiHourlyMap)
         }
         IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
             Icon(Icons.Rounded.Share, "Share", tint = Color.White)
@@ -346,15 +353,19 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 }
 
 
-private suspend fun fetchCurrentAirQuality(lat: Double, lon: Double): Int? {
+private suspend fun fetchAirQuality(lat: Double, lon: Double): Pair<Int?, Map<String, Int>> {
     return try {
         withTimeoutOrNull(5000L) {
             val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon)
             val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:00", java.util.Locale.US).format(java.util.Date())
             val idx = res.hourly.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
-            res.hourly.european_aqi.getOrNull(idx)
-        }
-    } catch (e: Exception) { null }
+            val current = res.hourly.european_aqi.getOrNull(idx)
+            val hourlyMap = res.hourly.time.zip(res.hourly.european_aqi)
+                .filter { it.second != null }
+                .associate { it.first to it.second!! }
+            Pair(current, hourlyMap)
+        } ?: Pair(null, emptyMap())
+    } catch (e: Exception) { Pair(null, emptyMap()) }
 }
 
 @SuppressLint("MissingPermission")
@@ -436,14 +447,14 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
             val startIndex = h.time.indexOfFirst { it >= res.current_weather.time }.takeIf { it != -1 } ?: 0
             uvIndex = h.uv_index?.getOrNull(startIndex)
             for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
-                hourlyList.add(HourlyForecastData(h.time[i], h.weathercode[i], h.is_day?.getOrNull(i) ?: 1, h.temperature_2m[i]))
+                hourlyList.add(HourlyForecastData(h.time[i], h.weathercode[i], h.is_day?.getOrNull(i) ?: 1, h.temperature_2m[i], uvIndex = h.uv_index?.getOrNull(i)))
             }
         }
 
         val dailyList = mutableListOf<DailyForecastData>()
         res.daily?.let { d ->
             for (i in 1 until minOf(1 + dailyRange, d.time.size)) {
-                dailyList.add(DailyForecastData(d.time[i], d.weathercode[i], d.temperature_2m_min[i], d.temperature_2m_max[i], d.sunrise[i], d.sunset[i]))
+                dailyList.add(DailyForecastData(d.time[i], d.weathercode[i], d.temperature_2m_min[i], d.temperature_2m_max[i], d.sunrise[i], d.sunset[i], uvIndexMax = d.uv_index_max?.getOrNull(i)))
             }
         }
 
