@@ -35,4 +35,7 @@ class PreferenceManager(context: Context) {
 
     fun saveDailyRange(value: Int) = prefs.edit().putInt("daily_range", value).apply()
     fun getDailyRange() = prefs.getInt("daily_range", 6)
+
+    fun saveShowSunriseSunset(value: Boolean) = prefs.edit().putBoolean("show_sunrise_sunset", value).apply()
+    fun getShowSunriseSunset() = prefs.getBoolean("show_sunrise_sunset", true)
 }

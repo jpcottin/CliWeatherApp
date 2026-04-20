@@ -43,6 +43,7 @@ fun SettingsDialog(
     is24Hour: Boolean, on24HourChange: (Boolean) -> Unit,
     hourlyRange: Int, onHourlyRangeChange: (Int) -> Unit,
     dailyRange: Int, onDailyRangeChange: (Int) -> Unit,
+    showSunriseSunset: Boolean, onShowSunriseSunsetChange: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val ctx = getLocalizedContext(LocalContext.current, currentLanguage)
@@ -102,6 +103,13 @@ fun SettingsDialog(
                     modifier = Modifier.testTag("slider_daily")
                 )
 
+                Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(ctx.getString(R.string.show_sunrise_sunset), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                    Switch(checked = showSunriseSunset, onCheckedChange = { onShowSunriseSunsetChange(it) }, modifier = Modifier.scale(0.8f).testTag("switch_sunrise_sunset"))
+                }
+
                 Spacer(Modifier.height(24.dp)); Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("OK") }
             }
         }
@@ -127,7 +135,7 @@ fun HourlyForecastRow(forecasts: List<HourlyForecastData>, isC: Boolean, lang: A
 }
 
 @Composable
-fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: AppLanguage, is24h: Boolean) {
+fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: AppLanguage, is24h: Boolean, showSunriseSunset: Boolean = true) {
     LazyRow(contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(forecasts) { item ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -136,16 +144,18 @@ fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: App
                 Icon(getWeatherIcon(item.code, 1), null, Modifier.size(32.dp), Color.White)
                 Spacer(Modifier.height(4.dp))
                 Text("${String.format("%.0f", convertTemperature(item.minTemp, isC))}° / ${String.format("%.0f", convertTemperature(item.maxTemp, isC))}°", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.WbSunny, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
-                    Spacer(Modifier.width(2.dp))
-                    Text(formatSunriseSunset(item.sunrise, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.NightlightRound, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
-                    Spacer(Modifier.width(2.dp))
-                    Text(formatSunriseSunset(item.sunset, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                if (showSunriseSunset) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.WbSunny, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
+                        Spacer(Modifier.width(2.dp))
+                        Text(formatSunriseSunset(item.sunrise, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.NightlightRound, null, Modifier.size(10.dp), Color.White.copy(alpha = 0.8f))
+                        Spacer(Modifier.width(2.dp))
+                        Text(formatSunriseSunset(item.sunset, lang.locale, is24h), fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
+                    }
                 }
             }
         }
@@ -153,18 +163,18 @@ fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: App
 }
 
 @Composable
-fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit) {
+fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, showSunriseSunset: Boolean = true) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
         if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
-        if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
+        if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h, showSunriseSunset)
         SectionControls(ctx, perm, locationInfo, useGps, lang, isRefreshing, onRef, onSpeak, onPerm)
         MiniWorldMap(ctx, lat, lon, error, lang, onMap, Modifier.height(220.dp).fillMaxWidth().padding(horizontal = 16.dp))
     }
 }
 
 @Composable
-fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit) {
+fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, showSunriseSunset: Boolean = true) {
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -180,7 +190,7 @@ fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Bo
         Column(modifier = Modifier.weight(0.4f).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
             if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
-            if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h)
+            if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h, showSunriseSunset)
         }
         Column(modifier = Modifier.weight(0.6f).fillMaxHeight().padding(start = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             MiniWorldMap(ctx, lat, lon, error, lang, onMap, Modifier.weight(0.7f).fillMaxWidth())
