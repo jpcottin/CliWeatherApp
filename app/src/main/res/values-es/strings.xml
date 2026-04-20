@@ -20,6 +20,8 @@
     <string name="hourly_range_label">Pronóstico por hora: %1$d horas</string>
     <string name="daily_range_label">Pronóstico diario: %1$d días</string>
     <string name="show_sunrise_sunset">Amanecer &amp; atardecer</string>
+    <string name="show_uv_index">Índice UV</string>
+    <string name="show_air_quality">Calidad del aire (ICA)</string>
     <string name="unknown">Desconocido</string>
     <string name="minus">menos</string>
     <string name="weather_clear">Cielo despejado</string>

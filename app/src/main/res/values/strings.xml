@@ -21,6 +21,8 @@
     <string name="hourly_range_label">Hourly Range: %1$d hours</string>
     <string name="daily_range_label">Daily Range: %1$d days</string>
     <string name="show_sunrise_sunset">Sunrise &amp; Sunset</string>
+    <string name="show_uv_index">UV Index</string>
+    <string name="show_air_quality">Air Quality (AQI)</string>
     <string name="unknown">Unknown</string>
     <string name="minus">minus</string>
     <string name="weather_clear">Clear Sky</string>

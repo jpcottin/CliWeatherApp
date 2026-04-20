@@ -10,7 +10,7 @@ enum class AppLanguage(val label: String, val locale: Locale) {
     JA("日本語", Locale.JAPANESE)
 }
 
-data class Hourly(val time: List<String>, val temperature_2m: List<Double>, val weathercode: List<Int>, val is_day: List<Int>?)
+data class Hourly(val time: List<String>, val temperature_2m: List<Double>, val weathercode: List<Int>, val is_day: List<Int>?, val uv_index: List<Double>?)
 data class Daily(val time: List<String>, val weathercode: List<Int>, val temperature_2m_max: List<Double>, val temperature_2m_min: List<Double>, val sunrise: List<String>, val sunset: List<String>)
 data class WeatherResponse(val current_weather: CurrentWeather, val hourly: Hourly?, val daily: Daily?, val timezone: String)
 data class CurrentWeather(
@@ -26,7 +26,7 @@ interface WeatherApi {
         @retrofit2.http.Query("latitude") lat: Double,
         @retrofit2.http.Query("longitude") lon: Double,
         @retrofit2.http.Query("current_weather") current: Boolean = true,
-        @retrofit2.http.Query("hourly") hourly: String = "temperature_2m,weathercode,is_day",
+        @retrofit2.http.Query("hourly") hourly: String = "temperature_2m,weathercode,is_day,uv_index",
         @retrofit2.http.Query("daily") daily: String = "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset",
         @retrofit2.http.Query("timezone") timezone: String = "auto",
         @retrofit2.http.Query("forecast_days") days: Int = 16
@@ -37,5 +37,26 @@ object RetrofitClient {
     private const val BASE_URL = "https://api.open-meteo.com/"
     val api: WeatherApi by lazy {
         retrofit2.Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create()).build().create(WeatherApi::class.java)
+    }
+}
+
+data class AirQualityHourly(val time: List<String>, val european_aqi: List<Int?>)
+data class AirQualityResponse(val hourly: AirQualityHourly, val timezone: String)
+
+interface AirQualityApi {
+    @retrofit2.http.GET("v1/air-quality")
+    suspend fun getAirQuality(
+        @retrofit2.http.Query("latitude") lat: Double,
+        @retrofit2.http.Query("longitude") lon: Double,
+        @retrofit2.http.Query("hourly") hourly: String = "european_aqi",
+        @retrofit2.http.Query("timezone") timezone: String = "auto",
+        @retrofit2.http.Query("forecast_days") days: Int = 1
+    ): AirQualityResponse
+}
+
+object AirQualityRetrofitClient {
+    private const val BASE_URL = "https://air-quality-api.open-meteo.com/"
+    val api: AirQualityApi by lazy {
+        retrofit2.Retrofit.Builder().baseUrl(BASE_URL).addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create()).build().create(AirQualityApi::class.java)
     }
 }

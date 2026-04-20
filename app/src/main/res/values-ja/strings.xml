@@ -20,6 +20,8 @@
     <string name="hourly_range_label">時間ごとの予報: %1$d 時間</string>
     <string name="daily_range_label">日ごとの予報: %1$d 日</string>
     <string name="show_sunrise_sunset">日の出・日の入り</string>
+    <string name="show_uv_index">UV指数</string>
+    <string name="show_air_quality">大気質（AQI）</string>
     <string name="unknown">不明</string>
     <string name="minus">マイナス</string>
     <string name="weather_clear">快晴</string>
