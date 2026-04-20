@@ -19,6 +19,7 @@
     <string name="map_click">Karte</string>
     <string name="hourly_range_label">Stündliche Vorhersage: %1$d Stunden</string>
     <string name="daily_range_label">Tägliche Vorhersage: %1$d Tage</string>
+    <string name="show_sunrise_sunset">Sonnenauf- &amp; -untergang</string>
     <string name="unknown">Unbekannt</string>
     <string name="minus">minus</string>
     <string name="weather_clear">Klarer Himmel</string>

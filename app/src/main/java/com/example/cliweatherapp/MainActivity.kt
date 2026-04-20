@@ -131,6 +131,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var isRefreshing by remember { mutableStateOf(false) }
     var hourlyRange by remember { mutableIntStateOf(prefManager.getHourlyRange()) }
     var dailyRange by remember { mutableIntStateOf(prefManager.getDailyRange()) }
+    var showSunriseSunset by remember { mutableStateOf(prefManager.getShowSunriseSunset()) }
 
     var locationInfo by remember { mutableStateOf("") }
     var rawCity by remember { mutableStateOf("") }
@@ -184,6 +185,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     LaunchedEffect(is24Hour) { prefManager.saveIs24Hour(is24Hour) }
     LaunchedEffect(hourlyRange) { prefManager.saveHourlyRange(hourlyRange) }
     LaunchedEffect(dailyRange) { prefManager.saveDailyRange(dailyRange) }
+    LaunchedEffect(showSunriseSunset) { prefManager.saveShowSunriseSunset(showSunriseSunset) }
 
     LaunchedEffect(mapErrorMessage) {
         if (mapErrorMessage != null) { delay(2000); mapErrorMessage = null }
@@ -277,9 +279,9 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
-            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
+            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset)
         } else {
-            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick)
+            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset)
         }
         IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
             Icon(Icons.Rounded.Share, "Share", tint = Color.White)
@@ -311,6 +313,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                     dailyRange = it
                     refreshAction()
                 },
+                showSunriseSunset = showSunriseSunset,
+                onShowSunriseSunsetChange = { showSunriseSunset = it },
                 onDismiss = { showSettings = false }
             )
         }

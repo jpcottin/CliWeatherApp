@@ -28,6 +28,7 @@ Tailor the app to your preferences with a comprehensive settings suite:
     *   Deutsch (German)
     *   日本語 (Japanese)
 *   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-16d) forecast rows using intuitive sliders.
+*   **Sunrise & Sunset**: Toggle the display of sunrise and sunset times on daily forecast cards (on by default).
 *   **Location Mode**: Switch between **Map Mode** (fixed point) and **GPS Mode** (continuous tracking).
 
 ## 🔒 Permissions
@@ -43,7 +44,7 @@ The app requests minimal permissions to ensure user privacy while providing full
 CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all weather data.
 *   **Transparency**: No API keys are required for standard usage.
 *   **Query Optimization**: The app dynamically calculates the minimum required number of forecast days (up to 16) based on your selected hourly and daily ranges to minimize network payload and ensure snappier updates.
-*   **Data Points**: The app fetches `hourly=temperature_2m,weathercode,is_day` and `daily=weathercode,temperature_2m_max,temperature_2m_min`.
+*   **Data Points**: The app fetches `hourly=temperature_2m,weathercode,is_day` and `daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset`. Sunrise and sunset times are always requested from the API regardless of display settings.
 *   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names, localized instantly to your selected app language.
 
 ## 🛠 Technology Stack
@@ -75,6 +76,3 @@ The interactive world map utilizes a composite satellite image of Earth to provi
 *   **Process**: A "cloud-free" mosaic stitched from months of observations to provide a clear view of every square kilometer of the planet.
 *   **Licensing**: This image is in the **Public Domain** (created by the U.S. Federal Government). It is free to use, modify, and distribute.
 *   **Verification**: This is a scientific composite based on actual satellite data, available via [NASA Visible Earth](https://visibleearth.nasa.gov/).
-
----
-*Created by Gemini CLI - 2026*
