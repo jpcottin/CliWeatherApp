@@ -212,6 +212,35 @@ class MainActivityUITest {
     }
 
     @Test
+    fun testUvIndexAndAirQualityTogglesInSettings() {
+        waitForDataToLoad()
+        composeTestRule.onNodeWithContentDescription("Settings").safeClick()
+        composeTestRule.waitForIdle()
+        Thread.sleep(500)
+
+        // Both are off by default
+        composeTestRule.onNodeWithTag("switch_uv_index").assertIsOff()
+        composeTestRule.onNodeWithTag("switch_air_quality").assertIsOff()
+
+        // Toggle both on
+        composeTestRule.onNodeWithTag("switch_uv_index").safeClick()
+        composeTestRule.onNodeWithTag("switch_uv_index").assertIsOn()
+        composeTestRule.onNodeWithTag("switch_air_quality").safeClick()
+        composeTestRule.onNodeWithTag("switch_air_quality").assertIsOn()
+
+        composeTestRule.onNodeWithText("OK").safeClick()
+        waitForDataToLoad()
+
+        // Preferences persisted
+        assert(prefManager.getShowUvIndex())
+        assert(prefManager.getShowAirQuality())
+
+        // Restore defaults
+        prefManager.saveShowUvIndex(false)
+        prefManager.saveShowAirQuality(false)
+    }
+
+    @Test
     fun testLayoutWorksInDifferentOrientations() {
         waitForDataToLoad()
         device.setOrientationLeft()

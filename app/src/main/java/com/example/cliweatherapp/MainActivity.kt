@@ -57,7 +57,7 @@ interface WeatherRepository {
         context: Context, useGps: Boolean, lat: Double?, lon: Double?,
         lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
     )
 }
 
@@ -67,7 +67,7 @@ class RetrofitWeatherRepository : WeatherRepository {
         context: Context, useGps: Boolean, lat: Double?, lon: Double?,
         lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
     ) {
         scope.launch {
             fetchLocationAndWeather(context, useGps, lat, lon, lang, is24Hour, hourlyRange, dailyRange, onLoc, onWeather)
@@ -81,12 +81,12 @@ class MockWeatherRepository : WeatherRepository {
         context: Context, useGps: Boolean, lat: Double?, lon: Double?,
         lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
     ) {
         onLoc("Mock City, Test\n(45.00, 90.00)", "Mock City", 45.0, 90.0)
         val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${it%24}:00", 0, 1, 20.0 + it) }
         val d = List(dailyRange) { DailyForecastData("2026-04-${12+it}", 0, 15.0, 25.0, "2026-04-12T06:00", "2026-04-12T18:00") }
-        onWeather(0, 22.5, "UTC", 1, h, d)
+        onWeather(0, 22.5, "UTC", 1, h, d, 3.0)
     }
 }
 
@@ -132,6 +132,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var hourlyRange by remember { mutableIntStateOf(prefManager.getHourlyRange()) }
     var dailyRange by remember { mutableIntStateOf(prefManager.getDailyRange()) }
     var showSunriseSunset by remember { mutableStateOf(prefManager.getShowSunriseSunset()) }
+    var showUvIndex by remember { mutableStateOf(prefManager.getShowUvIndex()) }
+    var showAirQuality by remember { mutableStateOf(prefManager.getShowAirQuality()) }
 
     var locationInfo by remember { mutableStateOf("") }
     var rawCity by remember { mutableStateOf("") }
@@ -144,6 +146,8 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     var mapErrorMessage by remember { mutableStateOf<String?>(null) }
     var hourlyForecasts by remember { mutableStateOf<List<HourlyForecastData>>(emptyList()) }
     var dailyForecasts by remember { mutableStateOf<List<DailyForecastData>>(emptyList()) }
+    var currentUvIndex by remember { mutableStateOf<Double?>(null) }
+    var currentAirQuality by remember { mutableStateOf<Int?>(null) }
     var apiCallCount by remember { mutableIntStateOf(0) }
 
     var permissionGranted by remember {
@@ -186,6 +190,12 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     LaunchedEffect(hourlyRange) { prefManager.saveHourlyRange(hourlyRange) }
     LaunchedEffect(dailyRange) { prefManager.saveDailyRange(dailyRange) }
     LaunchedEffect(showSunriseSunset) { prefManager.saveShowSunriseSunset(showSunriseSunset) }
+    LaunchedEffect(showUvIndex) { prefManager.saveShowUvIndex(showUvIndex) }
+    LaunchedEffect(showAirQuality) { prefManager.saveShowAirQuality(showAirQuality) }
+    LaunchedEffect(showAirQuality, currentLat, currentLon) {
+        if (showAirQuality) currentAirQuality = fetchCurrentAirQuality(currentLat, currentLon)
+        else currentAirQuality = null
+    }
 
     LaunchedEffect(mapErrorMessage) {
         if (mapErrorMessage != null) { delay(2000); mapErrorMessage = null }
@@ -197,8 +207,9 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         isRefreshing = true
         repo.fetch(scope, context, gps, lat, lon, appLanguage, is24Hour, hourlyRange, dailyRange, { full, city, flat, flon ->
             locationInfo = full; rawCity = city; currentLat = flat; currentLon = flon
-        }, { code, temp, tz, day, hourly, daily ->
+        }, { code, temp, tz, day, hourly, daily, uvIdx ->
             weatherCode = code; temperature = temp; timezoneId = tz; isDay = day; hourlyForecasts = hourly; dailyForecasts = daily
+            currentUvIndex = uvIdx
             isRefreshing = false
         })
     }
@@ -261,12 +272,21 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
             val minusPrefix = if(isNegative) "${localizedContext.getString(R.string.minus)} " else ""
 
             val condition = getConditionString(localizedContext, weatherCode)
+            val uvStr = if (showUvIndex && currentUvIndex != null) String.format("%.1f", currentUvIndex) else null
+            val uvSuffix = when {
+                uvStr == null -> ""
+                appLanguage == AppLanguage.FR -> " L'indice UV est $uvStr."
+                appLanguage == AppLanguage.JA -> " UV指数は ${uvStr}です。"
+                appLanguage == AppLanguage.ES -> " El índice UV es $uvStr."
+                appLanguage == AppLanguage.DE -> " Der UV-Index beträgt $uvStr."
+                else -> " The UV index is $uvStr."
+            }
             val speechText = when(appLanguage) {
-                AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec eine température de $minusPrefix$absTempStr $unitName."
-                AppLanguage.JA -> "現在時刻は $displayTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。"
-                AppLanguage.ES -> "Son las $displayTime en $rawCity. El clima es $condition con una temperatura de $minusPrefix$absTempStr grados."
-                AppLanguage.DE -> "Es ist $displayTime in $rawCity. Das Wetter ist $condition bei einer Temperatur von $minusPrefix$absTempStr Grad."
-                else -> "It is $displayTime in $rawCity. The weather is $condition with a temperature of $minusPrefix$absTempStr $unitName."
+                AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec une température de $minusPrefix$absTempStr $unitName.$uvSuffix"
+                AppLanguage.JA -> "現在時刻は $displayTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。$uvSuffix"
+                AppLanguage.ES -> "Son las $displayTime en $rawCity. El clima es $condition con una temperatura de $minusPrefix$absTempStr grados.$uvSuffix"
+                AppLanguage.DE -> "Es ist $displayTime in $rawCity. Das Wetter ist $condition bei einer Temperatur von $minusPrefix$absTempStr Grad.$uvSuffix"
+                else -> "It is $displayTime in $rawCity. The weather is $condition with a temperature of $minusPrefix$absTempStr $unitName.$uvSuffix"
             }
             onSpeak(speechText, appLanguage.locale)
         }
@@ -279,9 +299,9 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 
     Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
-            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset)
+            VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality)
         } else {
-            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset)
+            HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality)
         }
         IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
             Icon(Icons.Rounded.Share, "Share", tint = Color.White)
@@ -315,6 +335,10 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                 },
                 showSunriseSunset = showSunriseSunset,
                 onShowSunriseSunsetChange = { showSunriseSunset = it },
+                showUvIndex = showUvIndex,
+                onShowUvIndexChange = { showUvIndex = it },
+                showAirQuality = showAirQuality,
+                onShowAirQualityChange = { showAirQuality = it },
                 onDismiss = { showSettings = false }
             )
         }
@@ -322,8 +346,19 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
 }
 
 
+private suspend fun fetchCurrentAirQuality(lat: Double, lon: Double): Int? {
+    return try {
+        withTimeoutOrNull(5000L) {
+            val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon)
+            val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:00", java.util.Locale.US).format(java.util.Date())
+            val idx = res.hourly.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
+            res.hourly.european_aqi.getOrNull(idx)
+        }
+    } catch (e: Exception) { null }
+}
+
 @SuppressLint("MissingPermission")
-private suspend fun fetchLocationAndWeather(context: android.content.Context, useGps: Boolean, lat: Double?, lon: Double?, lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int, onLoc: (String, String, Double, Double) -> Unit, onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>) -> Unit) {
+private suspend fun fetchLocationAndWeather(context: android.content.Context, useGps: Boolean, lat: Double?, lon: Double?, lang: AppLanguage, is24Hour: Boolean, hourlyRange: Int, dailyRange: Int, onLoc: (String, String, Double, Double) -> Unit, onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit) {
     try {
         var finalLat: Double = lat ?: 0.0
         var finalLon: Double = lon ?: 0.0
@@ -363,7 +398,7 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
             } else {
                 val err = getLocalizedContext(context, lang).getString(R.string.gps_error)
                 onLoc(err, "Error", 0.0, 0.0)
-                onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList())
+                onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList(), null)
                 return
             }
         }
@@ -391,13 +426,15 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
                 RetrofitClient.api.getWeather(finalLat, finalLon, days = neededDays)
             } ?: throw java.net.SocketTimeoutException("Network Timeout")
         } catch (e: Exception) {
-            onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList())
+            onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList(), null)
             return
         }
 
         val hourlyList = mutableListOf<HourlyForecastData>()
+        var uvIndex: Double? = null
         res.hourly?.let { h ->
             val startIndex = h.time.indexOfFirst { it >= res.current_weather.time }.takeIf { it != -1 } ?: 0
+            uvIndex = h.uv_index?.getOrNull(startIndex)
             for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
                 hourlyList.add(HourlyForecastData(h.time[i], h.weathercode[i], h.is_day?.getOrNull(i) ?: 1, h.temperature_2m[i]))
             }
@@ -410,9 +447,9 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
             }
         }
 
-        onWeather(res.current_weather.weathercode, res.current_weather.temperature, res.timezone, res.current_weather.is_day, hourlyList, dailyList)
+        onWeather(res.current_weather.weathercode, res.current_weather.temperature, res.timezone, res.current_weather.is_day, hourlyList, dailyList, uvIndex)
     } catch (e: Exception) {
         onLoc("Error: ${e.message}", "Error", 0.0, 0.0)
-        onWeather(0, -999.0, "UTC", 1, emptyList(), emptyList())
+        onWeather(0, -999.0, "UTC", 1, emptyList(), emptyList(), null)
     }
 }

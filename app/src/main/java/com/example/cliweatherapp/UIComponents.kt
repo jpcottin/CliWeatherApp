@@ -44,6 +44,8 @@ fun SettingsDialog(
     hourlyRange: Int, onHourlyRangeChange: (Int) -> Unit,
     dailyRange: Int, onDailyRangeChange: (Int) -> Unit,
     showSunriseSunset: Boolean, onShowSunriseSunsetChange: (Boolean) -> Unit,
+    showUvIndex: Boolean, onShowUvIndexChange: (Boolean) -> Unit,
+    showAirQuality: Boolean, onShowAirQualityChange: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     val ctx = getLocalizedContext(LocalContext.current, currentLanguage)
@@ -83,10 +85,12 @@ fun SettingsDialog(
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
 
                 // Hourly Range Slider
-                Text(String.format(ctx.getString(R.string.hourly_range_label), hourlyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                var localHourlyRange by remember(hourlyRange) { mutableStateOf(hourlyRange) }
+                Text(String.format(ctx.getString(R.string.hourly_range_label), localHourlyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                 Slider(
-                    value = hourlyRange.toFloat(),
-                    onValueChange = { onHourlyRangeChange(it.toInt()) },
+                    value = localHourlyRange.toFloat(),
+                    onValueChange = { localHourlyRange = it.toInt() },
+                    onValueChangeFinished = { onHourlyRangeChange(localHourlyRange) },
                     valueRange = 0f..168f,
                     steps = 167,
                     modifier = Modifier.testTag("slider_hourly")
@@ -94,10 +98,12 @@ fun SettingsDialog(
                 Spacer(Modifier.height(8.dp))
 
                 // Daily Range Slider
-                Text(String.format(ctx.getString(R.string.daily_range_label), dailyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                var localDailyRange by remember(dailyRange) { mutableStateOf(dailyRange) }
+                Text(String.format(ctx.getString(R.string.daily_range_label), localDailyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                 Slider(
-                    value = dailyRange.toFloat(),
-                    onValueChange = { onDailyRangeChange(it.toInt()) },
+                    value = localDailyRange.toFloat(),
+                    onValueChange = { localDailyRange = it.toInt() },
+                    onValueChangeFinished = { onDailyRangeChange(localDailyRange) },
                     valueRange = 0f..16f,
                     steps = 15,
                     modifier = Modifier.testTag("slider_daily")
@@ -108,6 +114,18 @@ fun SettingsDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(ctx.getString(R.string.show_sunrise_sunset), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Switch(checked = showSunriseSunset, onCheckedChange = { onShowSunriseSunsetChange(it) }, modifier = Modifier.scale(0.8f).testTag("switch_sunrise_sunset"))
+                }
+                Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(ctx.getString(R.string.show_uv_index), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                    Switch(checked = showUvIndex, onCheckedChange = { onShowUvIndexChange(it) }, modifier = Modifier.scale(0.8f).testTag("switch_uv_index"))
+                }
+                Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(ctx.getString(R.string.show_air_quality), modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                    Switch(checked = showAirQuality, onCheckedChange = { onShowAirQualityChange(it) }, modifier = Modifier.scale(0.8f).testTag("switch_air_quality"))
                 }
 
                 Spacer(Modifier.height(24.dp)); Button(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text("OK") }
@@ -163,9 +181,9 @@ fun DailyForecastRow(forecasts: List<DailyForecastData>, isC: Boolean, lang: App
 }
 
 @Composable
-fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, showSunriseSunset: Boolean = true) {
+fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, showSunriseSunset: Boolean = true, showUvIndex: Boolean = false, uvIndex: Double? = null, showAirQuality: Boolean = false, airQuality: Int? = null) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
+        SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h, showUvIndex, uvIndex, showAirQuality, airQuality)
         if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
         if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h, showSunriseSunset)
         SectionControls(ctx, perm, locationInfo, useGps, lang, isRefreshing, onRef, onSpeak, onPerm)
@@ -174,7 +192,7 @@ fun VerticalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Bool
 }
 
 @Composable
-fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, showSunriseSunset: Boolean = true) {
+fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Boolean, code: Int, day: Int, temp: Double?, isC: Boolean, locationInfo: String, lat: Double, lon: Double, useGps: Boolean, error: String?, lang: AppLanguage, hourly: List<HourlyForecastData>, daily: List<DailyForecastData>, isRefreshing: Boolean, onRef: () -> Unit, onSpeak: () -> Unit, onPerm: () -> Unit, onMap: (Double, Double) -> Unit, showSunriseSunset: Boolean = true, showUvIndex: Boolean = false, uvIndex: Double? = null, showAirQuality: Boolean = false, airQuality: Int? = null) {
     val infiniteTransition = rememberInfiniteTransition(label = "refresh")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -188,7 +206,7 @@ fun HorizontalLayout(ctx: Context, timezoneId: String?, is24h: Boolean, perm: Bo
 
     Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(0.4f).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h)
+            SectionTimeWeather(ctx, code, day, temp, isC, lang, timezoneId, is24h, showUvIndex, uvIndex, showAirQuality, airQuality)
             if (hourly.isNotEmpty()) HourlyForecastRow(hourly, isC, lang, is24h)
             if (daily.isNotEmpty()) DailyForecastRow(daily, isC, lang, is24h, showSunriseSunset)
         }
@@ -246,9 +264,16 @@ fun SectionTimeDisplay(ctx: Context, timezoneId: String?, lang: AppLanguage, is2
 }
 
 @Composable
-fun SectionTimeWeather(ctx: Context, code: Int, day: Int, temp: Double?, isC: Boolean, lang: AppLanguage, timezoneId: String?, is24h: Boolean) {
+fun SectionTimeWeather(ctx: Context, code: Int, day: Int, temp: Double?, isC: Boolean, lang: AppLanguage, timezoneId: String?, is24h: Boolean, showUvIndex: Boolean = false, uvIndex: Double? = null, showAirQuality: Boolean = false, airQuality: Int? = null) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         SectionTimeDisplay(ctx, timezoneId, lang, is24h)
+        if ((showUvIndex && uvIndex != null) || (showAirQuality && airQuality != null)) {
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showUvIndex && uvIndex != null) InfoBadge("UV", uvIndex.toInt().toString(), uvColor(uvIndex))
+                if (showAirQuality && airQuality != null) InfoBadge("AQI", airQuality.toString(), aqiColor(airQuality))
+            }
+        }
         Spacer(Modifier.height(16.dp))
         Icon(getWeatherIcon(code, day), null, Modifier.size(100.dp), Color.White)
         Box(modifier = Modifier.testTag("current_temp"), contentAlignment = Alignment.Center) {
@@ -332,12 +357,42 @@ fun MiniWorldMap(ctx: Context, lat: Double, lon: Double, error: String?, lang: A
         }
     }
 }
+internal fun uvColor(uv: Double) = when {
+    uv < 3  -> Color(0xFF66BB6A)
+    uv < 6  -> Color(0xFFFDD835)
+    uv < 8  -> Color(0xFFFFA726)
+    uv < 11 -> Color(0xFFEF5350)
+    else    -> Color(0xFFAB47BC)
+}
+
+internal fun aqiColor(aqi: Int) = when {
+    aqi < 20  -> Color(0xFF66BB6A)
+    aqi < 40  -> Color(0xFFD4E157)
+    aqi < 60  -> Color(0xFFFDD835)
+    aqi < 80  -> Color(0xFFFFA726)
+    aqi < 100 -> Color(0xFFEF5350)
+    else      -> Color(0xFFAB47BC)
+}
+
+@Composable
+private fun InfoBadge(label: String, value: String, color: Color) {
+    Surface(shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.35f)) {
+        Text("$label $value", modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White)
+    }
+}
+
 // --- Previews ---
 
 @Preview(showBackground = true, backgroundColor = 0xFF2196F3)
 @Composable
 fun PreviewWeatherSection() {
     SectionTimeWeather(LocalContext.current, code = 0, day = 1, temp = 25.0, isC = true, lang = AppLanguage.EN, timezoneId = "UTC", is24h = false)
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF2196F3)
+@Composable
+fun PreviewWeatherSectionWithBadges() {
+    SectionTimeWeather(LocalContext.current, code = 0, day = 1, temp = 25.0, isC = true, lang = AppLanguage.EN, timezoneId = "UTC", is24h = false, showUvIndex = true, uvIndex = 6.5, showAirQuality = true, airQuality = 34)
 }
 
 @Preview(showBackground = true, widthDp = 400, heightDp = 800, backgroundColor = 0xFF2196F3)
@@ -347,7 +402,8 @@ fun PreviewVerticalLayout() {
         LocalContext.current, timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
         locationInfo = "Mountain View, United States\n(37.42, -122.08)", lat = 37.42, lon = -122.08,
         useGps = true, error = null, lang = AppLanguage.EN, hourly = emptyList(), daily = emptyList(),
-        isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->}
+        isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->},
+        showUvIndex = true, uvIndex = 4.2, showAirQuality = true, airQuality = 55
     )
 }
 
@@ -358,6 +414,7 @@ fun PreviewHorizontalLayout() {
         LocalContext.current, timezoneId = "UTC", is24h = false, perm = true, code = 0, day = 1, temp = 22.0, isC = true,
         locationInfo = "Mountain View, United States\n(37.42, -122.08)", lat = 37.42, lon = -122.08,
         useGps = true, error = null, lang = AppLanguage.EN, hourly = emptyList(), daily = emptyList(),
-        isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->}
+        isRefreshing = false, onRef = {}, onSpeak = {}, onPerm = {}, onMap = {_, _ ->},
+        showUvIndex = true, uvIndex = 4.2, showAirQuality = true, airQuality = 55
     )
 }

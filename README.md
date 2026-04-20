@@ -29,6 +29,8 @@ Tailor the app to your preferences with a comprehensive settings suite:
     *   日本語 (Japanese)
 *   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-16d) forecast rows using intuitive sliders.
 *   **Sunrise & Sunset**: Toggle the display of sunrise and sunset times on daily forecast cards (on by default).
+*   **UV Index**: Toggle the display of the current UV index as a colour-coded badge next to the clock (off by default).
+*   **Air Quality (AQI)**: Toggle the display of the current European AQI as a colour-coded badge next to the clock (off by default). Uses the Open-Meteo Air Quality API — no API key required.
 *   **Location Mode**: Switch between **Map Mode** (fixed point) and **GPS Mode** (continuous tracking).
 
 ## 🔒 Permissions
@@ -41,10 +43,11 @@ The app requests minimal permissions to ensure user privacy while providing full
 
 ## 🌐 External API
 
-CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all weather data.
+CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all weather and air quality data.
 *   **Transparency**: No API keys are required for standard usage.
 *   **Query Optimization**: The app dynamically calculates the minimum required number of forecast days (up to 16) based on your selected hourly and daily ranges to minimize network payload and ensure snappier updates.
-*   **Data Points**: The app fetches `hourly=temperature_2m,weathercode,is_day` and `daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset`. Sunrise and sunset times are always requested from the API regardless of display settings.
+*   **Weather endpoint** (`api.open-meteo.com/v1/forecast`): fetches `hourly=temperature_2m,weathercode,is_day,uv_index` and `daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset`. UV index and sunrise/sunset are always requested regardless of display settings.
+*   **Air quality endpoint** (`air-quality-api.open-meteo.com/v1/air-quality`): fetches `hourly=european_aqi`. This call is only made when the Air Quality setting is enabled.
 *   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names, localized instantly to your selected app language.
 
 ## 🛠 Technology Stack

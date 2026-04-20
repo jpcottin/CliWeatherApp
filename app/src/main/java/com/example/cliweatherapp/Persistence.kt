@@ -38,4 +38,10 @@ class PreferenceManager(context: Context) {
 
     fun saveShowSunriseSunset(value: Boolean) = prefs.edit().putBoolean("show_sunrise_sunset", value).apply()
     fun getShowSunriseSunset() = prefs.getBoolean("show_sunrise_sunset", true)
+
+    fun saveShowUvIndex(value: Boolean) = prefs.edit().putBoolean("show_uv_index", value).apply()
+    fun getShowUvIndex() = prefs.getBoolean("show_uv_index", false)
+
+    fun saveShowAirQuality(value: Boolean) = prefs.edit().putBoolean("show_air_quality", value).apply()
+    fun getShowAirQuality() = prefs.getBoolean("show_air_quality", false)
 }

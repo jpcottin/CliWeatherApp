@@ -5,6 +5,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material.icons.rounded.WbSunny
+import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.util.*
@@ -66,5 +67,35 @@ class WeatherLogicTest {
         val isoDate = "2024-04-11" // Thursday
         assertEquals("Thu", formatForecastDay(isoDate, Locale.ENGLISH))
         assertEquals("Jeu", formatForecastDay(isoDate, Locale.FRENCH).take(3)) // Accommodating small variations in Java locales
+    }
+
+    @Test
+    fun testUvColorScale() {
+        assertEquals(Color(0xFF66BB6A), uvColor(0.0))   // low (< 3)
+        assertEquals(Color(0xFF66BB6A), uvColor(2.9))
+        assertEquals(Color(0xFFFDD835), uvColor(3.0))   // moderate (3–5)
+        assertEquals(Color(0xFFFDD835), uvColor(5.9))
+        assertEquals(Color(0xFFFFA726), uvColor(6.0))   // high (6–7)
+        assertEquals(Color(0xFFFFA726), uvColor(7.9))
+        assertEquals(Color(0xFFEF5350), uvColor(8.0))   // very high (8–10)
+        assertEquals(Color(0xFFEF5350), uvColor(10.9))
+        assertEquals(Color(0xFFAB47BC), uvColor(11.0))  // extreme (≥ 11)
+        assertEquals(Color(0xFFAB47BC), uvColor(15.0))
+    }
+
+    @Test
+    fun testAqiColorScale() {
+        assertEquals(Color(0xFF66BB6A), aqiColor(0))    // good (< 20)
+        assertEquals(Color(0xFF66BB6A), aqiColor(19))
+        assertEquals(Color(0xFFD4E157), aqiColor(20))   // fair (20–39)
+        assertEquals(Color(0xFFD4E157), aqiColor(39))
+        assertEquals(Color(0xFFFDD835), aqiColor(40))   // moderate (40–59)
+        assertEquals(Color(0xFFFDD835), aqiColor(59))
+        assertEquals(Color(0xFFFFA726), aqiColor(60))   // poor (60–79)
+        assertEquals(Color(0xFFFFA726), aqiColor(79))
+        assertEquals(Color(0xFFEF5350), aqiColor(80))   // very poor (80–99)
+        assertEquals(Color(0xFFEF5350), aqiColor(99))
+        assertEquals(Color(0xFFAB47BC), aqiColor(100))  // extremely poor (≥ 100)
+        assertEquals(Color(0xFFAB47BC), aqiColor(150))
     }
 }
