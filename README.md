@@ -50,6 +50,39 @@ CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all
 *   **Air quality endpoint** (`air-quality-api.open-meteo.com/v1/air-quality`): fetches `hourly=european_aqi` for today (`forecast_days=1`). This call is only made when the Air Quality setting is enabled. The full hourly array is stored so each hour in the forecast can show its AQI value.
 *   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names, localized instantly to your selected app language.
 
+## 🥽 AI Glasses Integration (Android XR)
+
+When an Android XR projected display (AI glasses) is paired and connected to the phone, a glasses icon button appears **to the right of the Share button**. Tapping it sends the current weather to the glasses.
+
+### What appears on the glasses
+
+A Glimmer-themed projected screen shows:
+- **Main card**: large weather icon, current temperature (bold, 32 sp), condition subtitle, city name, and a Close button
+- **Hourly forecast row**: the next 4 hours, each showing the hour label, a weather icon, and temperature
+
+On open the glasses speak the current weather via TTS; tapping anywhere (or the Close button) speaks "Goodbye!" and dismisses the screen.
+
+### Technical details
+
+| Concern | Detail |
+|---|---|
+| Projected activity | `GlassesWeatherActivity` — `android:requiredDisplayCategory="display_category_xr_projected"` routes it to the glasses display |
+| Connection detection | `ProjectedContext.isProjectedDeviceConnected()` (API 36+); guarded with a `Build.VERSION_CODES` check so the button simply stays hidden on older SDKs |
+| UI toolkit | Jetpack Compose **Glimmer** (`androidx.xr.glimmer`) — the XR-optimised design system |
+| TTS | `AudioInterface`, a `DefaultLifecycleObserver` wrapping Android `TextToSpeech`; speaks on `onStart`, shuts down on `onStop` |
+| Data transport | Intent extras (`intArrayExtra`, `doubleArrayExtra`, `getStringArrayListExtra`) — no IPC, same process |
+| Deployment | APK installed on the phone only; the glasses emulator is a virtual peripheral display that pairs via Android Studio Device Manager |
+
+### Dependencies added
+
+```toml
+# gradle/libs.versions.toml
+xrProjected = "1.0.0-alpha03"
+xrGlimmer   = "1.0.0-alpha02"
+```
+
+> **Note**: `compileSdk = 36` is required by `androidx.xr.projected`.
+
 ## 🛠 Technology Stack
 
 Built using the latest Android development standards:
@@ -65,8 +98,8 @@ Built using the latest Android development standards:
 
 Quality is guaranteed through a multi-layered testing approach:
 
-*   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and API response parsing.
-*   **Compose UI Tests (`androidTest`)**: Verified interactions with buttons, switches, and maps using the `compose-ui-test` framework.
+*   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and API response parsing. `GlassesWeatherTest` covers intent extra key constants, `HourlyItem` construction from parallel arrays, edge cases (empty arrays, mismatched list lengths), temperature display, and hourly time formatting (12h/24h, midnight edge cases).
+*   **Compose UI Tests (`androidTest`)**: Verified interactions with buttons, switches, and maps using the `compose-ui-test` framework. Includes tests asserting the glasses button is absent when no XR device is connected (emulator default).
 *   **UI Automator**: Specialized tests for handling system-level dialogs (permissions) and hardware-level changes (device orientation).
 *   **State Persistence**: Tests ensure that your settings (language, units, location) are perfectly preserved across app restarts using `SharedPreferences`.
 

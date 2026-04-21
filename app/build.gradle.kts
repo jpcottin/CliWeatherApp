@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.example.cliweatherapp"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.example.cliweatherapp"
         minSdk = 24
@@ -53,6 +53,10 @@ dependencies {
     
     // Location
     implementation(libs.play.services.location)
+
+    // Android XR – projected display (AI glasses detection + UI)
+    implementation(libs.androidx.xr.projected)
+    implementation(libs.androidx.xr.glimmer)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Testing

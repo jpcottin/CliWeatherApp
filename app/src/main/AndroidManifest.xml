@@ -13,6 +13,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".GlassesWeatherActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:requiredDisplayCategory="@string/display_category_xr_projected" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
