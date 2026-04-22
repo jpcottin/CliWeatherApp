@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalProjectedApi::class)
+
 package com.example.cliweatherapp
 
 import android.Manifest
@@ -7,6 +9,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
@@ -15,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -22,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -47,12 +52,16 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.xr.projected.ProjectedContext
+import androidx.xr.projected.experimental.ExperimentalProjectedApi
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -134,6 +143,15 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     val scope = rememberCoroutineScope()
     val prefManager = remember { PreferenceManager(context) }
     val repo = MainActivity.repository
+
+    val glassesFlow = remember {
+        if (Build.VERSION.SDK_INT >= 36) {
+            ProjectedContext.isProjectedDeviceConnected(context, scope.coroutineContext + Dispatchers.Main)
+        } else {
+            MutableStateFlow(false)
+        }
+    }
+    val isGlassesConnected by glassesFlow.collectAsStateWithLifecycle(initialValue = false)
 
     var showSettings by remember { mutableStateOf(false) }
     var isCelsius by remember { mutableStateOf(prefManager.getIsCelsius()) }
@@ -280,16 +298,16 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         Unit
     }
 
-    val speakAction = {
-        if (temperature != null) {
+    val buildSpeechText: () -> String? = {
+        if (temperature == null) null
+        else {
             val displayTime = formatTime(Date(), timezoneId, appLanguage.locale, is24Hour)
             val displayTemp = convertTemperature(temperature!!, isCelsius)
-            val unitName = if (isCelsius) (if(appLanguage == AppLanguage.FR) "degrés Celsius" else "degrees Celsius")
-                       else (if(appLanguage == AppLanguage.FR) "degrés Fahrenheit" else "degrees Fahrenheit")
+            val unitName = if (isCelsius) (if (appLanguage == AppLanguage.FR) "degrés Celsius" else "degrees Celsius")
+                           else (if (appLanguage == AppLanguage.FR) "degrés Fahrenheit" else "degrees Fahrenheit")
             val isNegative = displayTemp < 0
             val absTempStr = String.format("%.1f", abs(displayTemp))
-            val minusPrefix = if(isNegative) "${localizedContext.getString(R.string.minus)} " else ""
-
+            val minusPrefix = if (isNegative) "${localizedContext.getString(R.string.minus)} " else ""
             val condition = getConditionString(localizedContext, weatherCode)
             val uvStr = if (showUvIndex && currentUvIndex != null) String.format("%.1f", currentUvIndex) else null
             val uvSuffix = when {
@@ -300,15 +318,48 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                 appLanguage == AppLanguage.DE -> " Der UV-Index beträgt $uvStr."
                 else -> " The UV index is $uvStr."
             }
-            val speechText = when(appLanguage) {
+            when (appLanguage) {
                 AppLanguage.FR -> "Il est $displayTime à $rawCity. La météo est $condition avec une température de $minusPrefix$absTempStr $unitName.$uvSuffix"
                 AppLanguage.JA -> "現在時刻は $displayTime、場所は $rawCity です。天気は $condition、気温は $minusPrefix$absTempStr 度です。$uvSuffix"
                 AppLanguage.ES -> "Son las $displayTime en $rawCity. El clima es $condition con una temperatura de $minusPrefix$absTempStr grados.$uvSuffix"
                 AppLanguage.DE -> "Es ist $displayTime in $rawCity. Das Wetter ist $condition bei einer Temperatur von $minusPrefix$absTempStr Grad.$uvSuffix"
                 else -> "It is $displayTime in $rawCity. The weather is $condition with a temperature of $minusPrefix$absTempStr $unitName.$uvSuffix"
             }
-            onSpeak(speechText, appLanguage.locale)
         }
+    }
+
+    val speakAction = {
+        buildSpeechText()?.let { text -> onSpeak(text, appLanguage.locale) }
+        Unit
+    }
+
+    val sendToGlassesAction = {
+        buildSpeechText()?.let { text ->
+            try {
+                val next4 = hourlyForecasts.take(4)
+                val intent = Intent(context, GlassesWeatherActivity::class.java).apply {
+                    putExtra(GlassesWeatherActivity.EXTRA_WEATHER_TEXT, text)
+                    putExtra(GlassesWeatherActivity.EXTRA_WEATHER_CODE, weatherCode)
+                    putExtra(GlassesWeatherActivity.EXTRA_IS_DAY, isDay)
+                    putExtra(GlassesWeatherActivity.EXTRA_TEMPERATURE, temperature ?: 0.0)
+                    putExtra(GlassesWeatherActivity.EXTRA_IS_CELSIUS, isCelsius)
+                    putExtra(GlassesWeatherActivity.EXTRA_CITY, rawCity)
+                    putExtra(GlassesWeatherActivity.EXTRA_CONDITION, getConditionString(localizedContext, weatherCode))
+                    putExtra(GlassesWeatherActivity.EXTRA_IS_24_HOUR, is24Hour)
+                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_CODES, next4.map { it.code }.toIntArray())
+                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_IS_DAY, next4.map { it.isDay }.toIntArray())
+                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_TEMPS, next4.map { it.temp }.toDoubleArray())
+                    putStringArrayListExtra(GlassesWeatherActivity.EXTRA_HOURLY_TIMES, ArrayList(next4.map { it.isoTime }))
+                }
+                if (Build.VERSION.SDK_INT >= 36) {
+                    val options = ProjectedContext.createProjectedActivityOptions(context)
+                    context.startActivity(intent, options.toBundle())
+                } else {
+                    context.startActivity(intent)
+                }
+            } catch (_: Exception) { }
+        }
+        Unit
     }
 
     val bgColors = remember(weatherCode, isDay) {
@@ -322,8 +373,19 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
         } else {
             HorizontalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality, aqiHourlyMap)
         }
-        IconButton(onClick = shareAction, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
-            Icon(Icons.Rounded.Share, "Share", tint = Color.White)
+        Row(modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
+            IconButton(onClick = shareAction) {
+                Icon(Icons.Rounded.Share, "Share", tint = Color.White)
+            }
+            if (isGlassesConnected) {
+                IconButton(onClick = sendToGlassesAction, enabled = temperature != null) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_glasses),
+                        contentDescription = "Send to Glasses",
+                        tint = if (temperature != null) Color.White else Color.White.copy(alpha = 0.38f)
+                    )
+                }
+            }
         }
         IconButton(onClick = { showSettings = true }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) {
             Icon(Icons.Rounded.Settings, "Settings", tint = Color.White)
