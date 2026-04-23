@@ -53,9 +53,40 @@ class GlassesWeatherTest {
     }
 
     @Test
-    fun hourlyItems_limitedToFourByTake() {
-        val many = List(10) { HourlyItem("2026-04-20T${it.toString().padStart(2, '0')}:00", 0, 1, 20.0) }
-        assertEquals(4, many.take(4).size)
+    fun hourlyItems_pageOfFiveFromOffset() {
+        // displayCount=5, swipeStep=4: show 5, advance by 4 for overlap
+        val many = List(12) { i -> HourlyItem("2026-04-20T${i.toString().padStart(2, '0')}:00", 0, 1, 20.0) }
+        assertEquals(5, many.drop(0).take(5).size)  // page 0: hours 0-4
+        assertEquals(5, many.drop(4).take(5).size)  // page 1: hours 4-8 (hour 4 is shared)
+        assertEquals(5, many.drop(7).take(5).size)  // maxOffset=7: hours 7-11
+    }
+
+    @Test
+    fun hourlyOffset_swipeStepAndClamp() {
+        val items = List(12) { HourlyItem("", 0, 1, 0.0) }
+        val displayCount = 5
+        val swipeStep = 4
+        val maxOffset = (items.size - displayCount).coerceAtLeast(0) // 7
+        assertEquals(7, maxOffset)
+        // advancing from 0 goes to 4, from 4 goes to maxOffset(7)
+        assertEquals(4, (0 + swipeStep).coerceAtMost(maxOffset))
+        assertEquals(7, (4 + swipeStep).coerceAtMost(maxOffset))
+        // going back from 4 goes to 0
+        assertEquals(0, (4 - swipeStep).coerceAtLeast(0))
+    }
+
+    @Test
+    fun totalPages_calculatedCorrectly() {
+        // totalPages = maxOffset / swipeStep + 1
+        val swipeStep = 4
+        val displayCount = 5
+        // 12 items: maxOffset=7 → 7/4+1 = 2 pages
+        assertEquals(2, (12 - displayCount).coerceAtLeast(0) / swipeStep + 1)
+        // 5 items: maxOffset=0 → 1 page
+        assertEquals(1, if ((5 - displayCount).coerceAtLeast(0) == 0) 1
+                        else (5 - displayCount) / swipeStep + 1)
+        // 9 items: maxOffset=4 → 4/4+1 = 2 pages
+        assertEquals(2, (9 - displayCount).coerceAtLeast(0) / swipeStep + 1)
     }
 
     @Test

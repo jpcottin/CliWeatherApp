@@ -3,18 +3,23 @@ package com.example.cliweatherapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +30,6 @@ import androidx.xr.glimmer.Card
 import androidx.xr.glimmer.GlimmerTheme
 import androidx.xr.glimmer.Icon
 import androidx.xr.glimmer.Text
-import androidx.xr.glimmer.surface
 import java.util.Locale
 
 class GlassesWeatherActivity : ComponentActivity() {
@@ -123,12 +127,10 @@ fun WeatherGlassesScreenPreview() {
             isCelsius = true,
             city = "Paris",
             condition = "Clear sky",
-            hourlyItems = listOf(
-                HourlyItem("2026-04-20T14:00", 0,  1, 22.5),
-                HourlyItem("2026-04-20T15:00", 1,  1, 21.0),
-                HourlyItem("2026-04-20T16:00", 2,  1, 19.5),
-                HourlyItem("2026-04-20T17:00", 61, 0, 17.0)
-            ),
+            hourlyItems = List(12) { i ->
+                HourlyItem("2026-04-20T${(14 + i).toString().padStart(2, '0')}:00",
+                    listOf(0, 1, 2, 61, 71, 0)[i % 6], if (i < 8) 1 else 0, 22.5 - i * 0.5)
+            },
             is24Hour = true,
             closeLabel = "Close",
             onClose = {}
@@ -153,8 +155,38 @@ fun WeatherGlassesScreen(
     val unit = if (isCelsius) "C" else "F"
     val tempStr = String.format("%.1f°$unit", displayTemp)
 
+    val displayCount = 5  // hours shown at once
+    val swipeStep = 4     // advance by 4 so the last hour of each page is the first of the next
+    var hourlyOffset by remember { mutableIntStateOf(0) }
+    val maxOffset = (hourlyItems.size - displayCount).coerceAtLeast(0)
+    val totalPages = if (maxOffset == 0) 1 else maxOffset / swipeStep + 1
+    val currentPage = hourlyOffset / swipeStep
+    var dragAccum by remember { mutableFloatStateOf(0f) }
+
+    val draggableState = rememberDraggableState { delta ->
+        dragAccum += delta
+        when {
+            // swipe right (delta > 0) → go back in time
+            dragAccum > 80f && hourlyOffset > 0 -> {
+                hourlyOffset = (hourlyOffset - swipeStep).coerceAtLeast(0)
+                dragAccum = 0f
+            }
+            // swipe left (delta < 0) → go forward in time
+            dragAccum < -80f && hourlyOffset < maxOffset -> {
+                hourlyOffset = (hourlyOffset + swipeStep).coerceAtMost(maxOffset)
+                dragAccum = 0f
+            }
+        }
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .draggable(
+                state = draggableState,
+                orientation = Orientation.Horizontal,
+                onDragStopped = { dragAccum = 0f }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -180,32 +212,48 @@ fun WeatherGlassesScreen(
                 Text(city, fontSize = 18.sp)
             }
 
-            // Hourly forecast card
+            // Swipeable hourly forecast card (5 hours per page, swipe anywhere on screen)
             if (hourlyItems.isNotEmpty()) {
                 Card {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        hourlyItems.forEach { item ->
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
-                                    fontSize = 14.sp
-                                )
-                                Icon(
-                                    imageVector = getWeatherIcon(item.code, item.isDay),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(GlimmerTheme.iconSizes.medium),
-                                    tint = GlimmerTheme.colors.primary
-                                )
-                                Text(
-                                    text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
-                                    fontSize = 14.sp
-                                )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            hourlyItems.drop(hourlyOffset).take(displayCount).forEach { item ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
+                                        fontSize = 14.sp
+                                    )
+                                    Icon(
+                                        imageVector = getWeatherIcon(item.code, item.isDay),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(GlimmerTheme.iconSizes.medium),
+                                        tint = GlimmerTheme.colors.primary
+                                    )
+                                    Text(
+                                        text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+                        // Page dots
+                        if (totalPages > 1) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                repeat(totalPages) { page ->
+                                    Text(
+                                        text = if (page == currentPage) "●" else "○",
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
                         }
                     }
