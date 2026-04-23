@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">CliWeatherApp</string>
     <string name="current_time">Heure Actuelle</string>
     <string name="location_label">Emplacement</string>
     <string name="refresh">Actualiser</string>

@@ -309,7 +309,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
             val absTempStr = String.format("%.1f", abs(displayTemp))
             val minusPrefix = if (isNegative) "${localizedContext.getString(R.string.minus)} " else ""
             val condition = getConditionString(localizedContext, weatherCode)
-            val uvStr = if (showUvIndex && currentUvIndex != null) String.format("%.1f", currentUvIndex) else null
+            val uvStr = if (showUvIndex && currentUvIndex != null) String.format("%.0f", currentUvIndex) else null
             val uvSuffix = when {
                 uvStr == null -> ""
                 appLanguage == AppLanguage.FR -> " L'indice UV est $uvStr."
@@ -336,7 +336,6 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     val sendToGlassesAction = {
         buildSpeechText()?.let { text ->
             try {
-                val next4 = hourlyForecasts.take(4)
                 val intent = Intent(context, GlassesWeatherActivity::class.java).apply {
                     putExtra(GlassesWeatherActivity.EXTRA_WEATHER_TEXT, text)
                     putExtra(GlassesWeatherActivity.EXTRA_WEATHER_CODE, weatherCode)
@@ -346,10 +345,10 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                     putExtra(GlassesWeatherActivity.EXTRA_CITY, rawCity)
                     putExtra(GlassesWeatherActivity.EXTRA_CONDITION, getConditionString(localizedContext, weatherCode))
                     putExtra(GlassesWeatherActivity.EXTRA_IS_24_HOUR, is24Hour)
-                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_CODES, next4.map { it.code }.toIntArray())
-                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_IS_DAY, next4.map { it.isDay }.toIntArray())
-                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_TEMPS, next4.map { it.temp }.toDoubleArray())
-                    putStringArrayListExtra(GlassesWeatherActivity.EXTRA_HOURLY_TIMES, ArrayList(next4.map { it.isoTime }))
+                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_CODES, hourlyForecasts.map { it.code }.toIntArray())
+                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_IS_DAY, hourlyForecasts.map { it.isDay }.toIntArray())
+                    putExtra(GlassesWeatherActivity.EXTRA_HOURLY_TEMPS, hourlyForecasts.map { it.temp }.toDoubleArray())
+                    putStringArrayListExtra(GlassesWeatherActivity.EXTRA_HOURLY_TIMES, ArrayList(hourlyForecasts.map { it.isoTime }))
                     putExtra(GlassesWeatherActivity.EXTRA_LANGUAGE_TAG, appLanguage.locale.toLanguageTag())
                 }
                 if (Build.VERSION.SDK_INT >= 36) {

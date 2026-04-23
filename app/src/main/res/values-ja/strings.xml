@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">CliWeatherApp</string>
     <string name="current_time">現在時刻</string>
     <string name="location_label">場所</string>
     <string name="refresh">更新</string>
