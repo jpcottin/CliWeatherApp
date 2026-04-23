@@ -350,6 +350,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
                     putExtra(GlassesWeatherActivity.EXTRA_HOURLY_IS_DAY, next4.map { it.isDay }.toIntArray())
                     putExtra(GlassesWeatherActivity.EXTRA_HOURLY_TEMPS, next4.map { it.temp }.toDoubleArray())
                     putStringArrayListExtra(GlassesWeatherActivity.EXTRA_HOURLY_TIMES, ArrayList(next4.map { it.isoTime }))
+                    putExtra(GlassesWeatherActivity.EXTRA_LANGUAGE_TAG, appLanguage.locale.toLanguageTag())
                 }
                 if (Build.VERSION.SDK_INT >= 36) {
                     val options = ProjectedContext.createProjectedActivityOptions(context)

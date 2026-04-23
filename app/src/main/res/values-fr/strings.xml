@@ -23,6 +23,8 @@
     <string name="show_uv_index">Indice UV</string>
     <string name="show_air_quality">Qualité de l\'air (IQA)</string>
     <string name="unknown">Inconnu</string>
+    <string name="goodbye">Au revoir !</string>
+    <string name="close">Fermer</string>
     <string name="minus">moins</string>
     <string name="weather_clear">Ciel dégagé</string>
     <string name="weather_cloudy">Partiellement nuageux</string>
