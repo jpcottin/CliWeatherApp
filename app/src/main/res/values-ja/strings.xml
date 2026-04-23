@@ -23,6 +23,8 @@
     <string name="show_uv_index">UV指数</string>
     <string name="show_air_quality">大気質（AQI）</string>
     <string name="unknown">不明</string>
+    <string name="goodbye">さようなら！</string>
+    <string name="close">閉じる</string>
     <string name="minus">マイナス</string>
     <string name="weather_clear">快晴</string>
     <string name="weather_cloudy">晴れ時々曇り</string>

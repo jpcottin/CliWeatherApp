@@ -42,6 +42,7 @@ class GlassesWeatherActivity : ComponentActivity() {
         const val EXTRA_HOURLY_IS_DAY = "hourly_is_day"
         const val EXTRA_HOURLY_TEMPS = "hourly_temps"
         const val EXTRA_HOURLY_TIMES = "hourly_times"
+        const val EXTRA_LANGUAGE_TAG = "language_tag"
     }
 
     private lateinit var audioInterface: AudioInterface
@@ -60,6 +61,14 @@ class GlassesWeatherActivity : ComponentActivity() {
         val hourlyIsDays = intent.getIntArrayExtra(EXTRA_HOURLY_IS_DAY) ?: IntArray(0)
         val hourlyTemps = intent.getDoubleArrayExtra(EXTRA_HOURLY_TEMPS) ?: DoubleArray(0)
         val hourlyTimes = intent.getStringArrayListExtra(EXTRA_HOURLY_TIMES) ?: emptyList<String>()
+        val locale = Locale.forLanguageTag(
+            intent.getStringExtra(EXTRA_LANGUAGE_TAG) ?: Locale.ENGLISH.toLanguageTag()
+        )
+        val localizedCtx = run {
+            val config = resources.configuration
+            config.setLocale(locale)
+            createConfigurationContext(config)
+        }
         val hourlyItems = hourlyCodes.indices.map { i ->
             HourlyItem(
                 isoTime = hourlyTimes.getOrNull(i) ?: "",
@@ -69,7 +78,10 @@ class GlassesWeatherActivity : ComponentActivity() {
             )
         }
 
-        audioInterface = AudioInterface(this, weatherText)
+        val goodbyeText = localizedCtx.getString(R.string.goodbye)
+        val closeLabel = localizedCtx.getString(R.string.close)
+
+        audioInterface = AudioInterface(this, weatherText, locale)
         lifecycle.addObserver(audioInterface)
 
         setContent {
@@ -83,8 +95,9 @@ class GlassesWeatherActivity : ComponentActivity() {
                     condition = condition,
                     hourlyItems = hourlyItems,
                     is24Hour = is24Hour,
+                    closeLabel = closeLabel,
                     onClose = {
-                        audioInterface.speak(getString(R.string.goodbye))
+                        audioInterface.speak(goodbyeText)
                         finish()
                     }
                 )
@@ -117,6 +130,7 @@ fun WeatherGlassesScreenPreview() {
                 HourlyItem("2026-04-20T17:00", 61, 0, 17.0)
             ),
             is24Hour = true,
+            closeLabel = "Close",
             onClose = {}
         )
     }
@@ -132,6 +146,7 @@ fun WeatherGlassesScreen(
     condition: String,
     hourlyItems: List<HourlyItem>,
     is24Hour: Boolean,
+    closeLabel: String,
     onClose: () -> Unit
 ) {
     val displayTemp = convertTemperature(temperature, isCelsius)
@@ -159,7 +174,7 @@ fun WeatherGlassesScreen(
                 title = { Text(tempStr, fontSize = 32.sp, fontWeight = FontWeight.Bold) },
                 subtitle = { Text(condition, fontSize = 20.sp) },
                 action = {
-                    Button(onClick = onClose) { Text("Close", fontSize = 18.sp) }
+                    Button(onClick = onClose) { Text(closeLabel, fontSize = 18.sp) }
                 }
             ) {
                 Text(city, fontSize = 18.sp)

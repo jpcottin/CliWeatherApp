@@ -25,6 +25,7 @@
     <string name="show_air_quality">Air Quality (AQI)</string>
     <string name="unknown">Unknown</string>
     <string name="goodbye">Goodbye!</string>
+    <string name="close">Close</string>
     <string name="minus">minus</string>
     <string name="weather_clear">Clear Sky</string>
     <string name="weather_cloudy">Partly Cloudy</string>

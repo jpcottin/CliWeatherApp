@@ -23,6 +23,7 @@ class GlassesWeatherTest {
         assertEquals("hourly_is_day", GlassesWeatherActivity.EXTRA_HOURLY_IS_DAY)
         assertEquals("hourly_temps",  GlassesWeatherActivity.EXTRA_HOURLY_TEMPS)
         assertEquals("hourly_times",  GlassesWeatherActivity.EXTRA_HOURLY_TIMES)
+        assertEquals("language_tag",  GlassesWeatherActivity.EXTRA_LANGUAGE_TAG)
     }
 
     // --- HourlyItem construction from parallel arrays (mirrors GlassesWeatherActivity.onCreate) ---
@@ -110,6 +111,30 @@ class GlassesWeatherTest {
     fun hourlyTemperatureDisplay_roundedNoDecimal() {
         val display = convertTemperature(13.7, toCelsius = true)
         assertEquals("14°C", String.format("%.0f", display) + "°C")
+    }
+
+    // --- Locale / language-tag round-trip (mirrors GlassesWeatherActivity.onCreate) ---
+
+    @Test
+    fun languageTag_englishRoundTrip() {
+        val tag = Locale.ENGLISH.toLanguageTag()
+        val locale = Locale.forLanguageTag(tag)
+        assertEquals(Locale.ENGLISH.language, locale.language)
+    }
+
+    @Test
+    fun languageTag_frenchRoundTrip() {
+        val tag = Locale.FRENCH.toLanguageTag()
+        val locale = Locale.forLanguageTag(tag)
+        assertEquals("fr", locale.language)
+    }
+
+    @Test
+    fun languageTag_emptyFallsBackToEnglish() {
+        // Mirrors the ?: Locale.ENGLISH.toLanguageTag() fallback in GlassesWeatherActivity
+        val tag = null ?: Locale.ENGLISH.toLanguageTag()
+        val locale = Locale.forLanguageTag(tag)
+        assertEquals(Locale.ENGLISH.language, locale.language)
     }
 
     // --- Hourly time formatting used in the forecast row ---

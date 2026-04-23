@@ -69,7 +69,7 @@ On open the glasses speak the current weather via TTS; tapping anywhere (or the 
 | Projected activity | `GlassesWeatherActivity` — `android:requiredDisplayCategory="display_category_xr_projected"` routes it to the glasses display |
 | Connection detection | `ProjectedContext.isProjectedDeviceConnected()` (API 36+); guarded with a `Build.VERSION_CODES` check so the button simply stays hidden on older SDKs |
 | UI toolkit | Jetpack Compose **Glimmer** (`androidx.xr.glimmer`) — the XR-optimised design system |
-| TTS | `AudioInterface`, a `DefaultLifecycleObserver` wrapping Android `TextToSpeech`; speaks on `onStart`, shuts down on `onStop` |
+| TTS | `AudioInterface`, a `DefaultLifecycleObserver` wrapping Android `TextToSpeech`; speaks on `onStart`, shuts down on `onStop`. The locale (BCP-47 tag) is passed via `EXTRA_LANGUAGE_TAG` so the TTS voice matches the phone app's language setting |
 | Data transport | Intent extras (`intArrayExtra`, `doubleArrayExtra`, `getStringArrayListExtra`) — no IPC, same process |
 | Deployment | APK installed on the phone only; the glasses emulator is a virtual peripheral display that pairs via Android Studio Device Manager |
 
@@ -98,7 +98,7 @@ Built using the latest Android development standards:
 
 Quality is guaranteed through a multi-layered testing approach:
 
-*   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and API response parsing. `GlassesWeatherTest` covers intent extra key constants, `HourlyItem` construction from parallel arrays, edge cases (empty arrays, mismatched list lengths), temperature display, and hourly time formatting (12h/24h, midnight edge cases).
+*   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and API response parsing. `GlassesWeatherTest` covers intent extra key constants (including `EXTRA_LANGUAGE_TAG`), `HourlyItem` construction from parallel arrays, edge cases (empty arrays, mismatched list lengths), temperature display, hourly time formatting (12h/24h, midnight edge cases), and BCP-47 language-tag round-trips for the TTS locale fallback logic.
 *   **Compose UI Tests (`androidTest`)**: Verified interactions with buttons, switches, and maps using the `compose-ui-test` framework. Includes tests asserting the glasses button is absent when no XR device is connected (emulator default).
 *   **UI Automator**: Specialized tests for handling system-level dialogs (permissions) and hardware-level changes (device orientation).
 *   **State Persistence**: Tests ensure that your settings (language, units, location) are perfectly preserved across app restarts using `SharedPreferences`.

@@ -23,6 +23,8 @@
     <string name="show_uv_index">UV-Index</string>
     <string name="show_air_quality">Luftqualität (AQI)</string>
     <string name="unknown">Unbekannt</string>
+    <string name="goodbye">Auf Wiedersehen!</string>
+    <string name="close">Schließen</string>
     <string name="minus">minus</string>
     <string name="weather_clear">Klarer Himmel</string>
     <string name="weather_cloudy">Teilweise bewölkt</string>
