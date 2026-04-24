@@ -52,13 +52,19 @@ CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all
 
 ## 🥽 AI Glasses Integration (Android XR)
 
-When an Android XR projected display (AI glasses) is paired and connected to the phone, a glasses icon button appears **to the right of the Share button**. Tapping it sends the current weather to the glasses.
+The application features a dedicated `GlassesWeatherActivity` that projects a streamlined UI to connected AI Glasses using the **Jetpack Compose Glimmer** toolkit.
 
+**Glimmer Implementation Details:**
+*   **Target SDK:** The application targets SDK 37, a prerequisite for the latest Glimmer components.
+*   **Additive Display Optimization:** The root container enforces a pure black background (`Color.Black`), which renders as 100% transparent on additive AR lenses, ensuring the UI doesn't block the real world.
+*   **"One Thing at a Time":** The UI strictly adheres to Glimmer guidelines by avoiding multiple simultaneous cards. It uses `AnimatedContent` to allow users to swipe between the Current Weather and a paginated Forecast, minimizing field-of-view obstruction.
+*   **Legibility Constraints:** All typography enforces a minimum text size of 18sp to guarantee readability on optical displays, preventing shimmering and aliasing.
+*   **Input Mapping:** Horizontal swipe gestures on the glasses' touchpad seamlessly paginate the forecast data.
 ### What appears on the glasses
 
 A Glimmer-themed projected screen shows:
 - **Main card**: large weather icon, current temperature (bold, 32 sp), condition subtitle, city name, and a Close button
-- **Hourly forecast row**: the next 4 hours, each showing the hour label, a weather icon, and temperature
+- **Hourly forecast row**: paginated views (up to 4 pages) each showing 7 hours of data, with per-item icons and temperatures
 
 On open the glasses speak the current weather via TTS; tapping anywhere (or the Close button) speaks "Goodbye!" and dismisses the screen.
 
@@ -77,11 +83,11 @@ On open the glasses speak the current weather via TTS; tapping anywhere (or the 
 
 ```toml
 # gradle/libs.versions.toml
-xrProjected = "1.0.0-alpha03"
-xrGlimmer   = "1.0.0-alpha02"
+xrProjected = "1.0.0-alpha06"
+xrGlimmer   = "1.0.0-alpha11"
 ```
 
-> **Note**: `compileSdk = 36` is required by `androidx.xr.projected`.
+> **Note**: `compileSdk = 37` is required by Jetpack Compose Glimmer.
 
 ## 🛠 Technology Stack
 

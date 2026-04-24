@@ -5,11 +5,11 @@ plugins {
 
 android {
     namespace = "com.example.cliweatherapp"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "com.example.cliweatherapp"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 29
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
         

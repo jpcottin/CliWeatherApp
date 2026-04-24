@@ -35,4 +35,7 @@
     <string name="weather_snowy">雪</string>
     <string name="weather_showers">にわか雨</string>
     <string name="weather_storm">雷雨</string>
+
+    <string name="forecast">予報</string>
+    <string name="page_format">ページ %1$d/%2$d</string>
 </resources>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">CliWeatherApp</string>
+    <string name="display_category_xr_projected">xr_projected</string>
     <string name="current_time">Current Time</string>
     <string name="location_label">Location</string>
     <string name="refresh">Refresh</string>
@@ -35,4 +36,7 @@
     <string name="weather_snowy">Snowy</string>
     <string name="weather_showers">Showers</string>
     <string name="weather_storm">Thunderstorm</string>
+
+    <string name="forecast">Forecast</string>
+    <string name="page_format">Page %1$d/%2$d</string>
 </resources>

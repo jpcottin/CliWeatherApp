@@ -426,7 +426,6 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     }
 }
 
-
 private suspend fun fetchAirQuality(lat: Double, lon: Double): Pair<Int?, Map<String, Int>> {
     return try {
         withTimeoutOrNull(5000L) {
@@ -511,6 +510,7 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
                 RetrofitClient.api.getWeather(finalLat, finalLon, days = neededDays)
             } ?: throw java.net.SocketTimeoutException("Network Timeout")
         } catch (e: Exception) {
+            android.util.Log.e("API_ERROR", "Fetch failed: ${e.message}", e)
             onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList(), null)
             return
         }
@@ -520,7 +520,7 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
         res.hourly?.let { h ->
             val nowStr = res.current_weather.time
             val startIndex = h.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
-            
+
             uvIndex = h.uv_index?.getOrNull(startIndex)
             for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
                 val itemCode = h.weather_code.getOrNull(i) ?: res.current_weather.weathercode

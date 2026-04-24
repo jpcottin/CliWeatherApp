@@ -35,4 +35,7 @@
     <string name="weather_snowy">Neigeux</string>
     <string name="weather_showers">Averses</string>
     <string name="weather_storm">Orage</string>
+
+    <string name="forecast">Prévisions</string>
+    <string name="page_format">Page %1$d/%2$d</string>
 </resources>
