@@ -30,6 +30,13 @@ import androidx.xr.glimmer.Card
 import androidx.xr.glimmer.GlimmerTheme
 import androidx.xr.glimmer.Icon
 import androidx.xr.glimmer.Text
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.with
+import androidx.compose.runtime.key
 import java.util.Locale
 
 class GlassesWeatherActivity : ComponentActivity() {
@@ -138,6 +145,7 @@ fun WeatherGlassesScreenPreview() {
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun WeatherGlassesScreen(
     weatherCode: Int,
@@ -219,29 +227,47 @@ fun WeatherGlassesScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            hourlyItems.drop(hourlyOffset).take(displayCount).forEach { item ->
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Text(
-                                        text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
-                                        fontSize = 14.sp
-                                    )
-                                    Icon(
-                                        imageVector = getWeatherIcon(item.code, item.isDay),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(GlimmerTheme.iconSizes.medium),
-                                        tint = GlimmerTheme.colors.primary
-                                    )
-                                    Text(
-                                        text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
-                                        fontSize = 14.sp
-                                    )
+                        AnimatedContent(
+                            targetState = hourlyOffset,
+                            transitionSpec = {
+                                if (targetState > initialState) {
+                                    // Sliding forward (to the future)
+                                    fadeIn(animationSpec = tween(300)) with
+                                            fadeOut(animationSpec = tween(300))
+                                } else {
+                                    // Sliding backward
+                                    fadeIn(animationSpec = tween(300)) with
+                                            fadeOut(animationSpec = tween(300))
+                                }
+                            },
+                            label = "hourly_slide"
+                        ) { currentOffset ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                hourlyItems.drop(currentOffset).take(displayCount).forEach { item ->
+                                    key(item.isoTime) {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
+                                                fontSize = 14.sp
+                                            )
+                                            Icon(
+                                                imageVector = getWeatherIcon(item.code, item.isDay),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(GlimmerTheme.iconSizes.medium),
+                                                tint = GlimmerTheme.colors.primary
+                                            )
+                                            Text(
+                                                text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
+                                                fontSize = 14.sp
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

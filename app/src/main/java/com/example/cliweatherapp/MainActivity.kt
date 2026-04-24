@@ -105,8 +105,8 @@ class MockWeatherRepository : WeatherRepository {
         onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
     ) {
         onLoc("Mock City, Test\n(45.00, 90.00)", "Mock City", 45.0, 90.0)
-        val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${String.format("%02d", it % 24)}:00", 0, 1, 20.0 + it, uvIndex = (it % 12).toDouble()) }
-        val d = List(dailyRange) { DailyForecastData("2026-04-${12 + it}", 0, 15.0, 25.0, "2026-04-12T06:00", "2026-04-12T18:00", uvIndexMax = 4.0 + it) }
+        val h = List(hourlyRange) { HourlyForecastData("2026-04-12T${String.format("%02d", it % 24)}:00", listOf(0, 1, 2, 61, 71, 95)[it % 6], 1, 20.0 + it, uvIndex = (it % 12).toDouble()) }
+        val d = List(dailyRange) { DailyForecastData("2026-04-${12 + it}", listOf(0, 1, 2, 61, 71, 95)[it % 6], 15.0, 25.0, "2026-04-12T06:00", "2026-04-12T18:00", uvIndexMax = 4.0 + it) }
         onWeather(0, 22.5, "UTC", 1, h, d, 3.0)
     }
 }
@@ -518,17 +518,22 @@ private suspend fun fetchLocationAndWeather(context: android.content.Context, us
         val hourlyList = mutableListOf<HourlyForecastData>()
         var uvIndex: Double? = null
         res.hourly?.let { h ->
-            val startIndex = h.time.indexOfFirst { it >= res.current_weather.time }.takeIf { it != -1 } ?: 0
+            val nowStr = res.current_weather.time
+            val startIndex = h.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
+            
             uvIndex = h.uv_index?.getOrNull(startIndex)
             for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
-                hourlyList.add(HourlyForecastData(h.time[i], h.weathercode[i], h.is_day?.getOrNull(i) ?: 1, h.temperature_2m[i], uvIndex = h.uv_index?.getOrNull(i)))
+                val itemCode = h.weather_code.getOrNull(i) ?: res.current_weather.weathercode
+                val itemIsDay = h.is_day?.getOrNull(i) ?: 1
+                hourlyList.add(HourlyForecastData(h.time[i], itemCode, itemIsDay, h.temperature_2m[i], uvIndex = h.uv_index?.getOrNull(i)))
             }
         }
 
         val dailyList = mutableListOf<DailyForecastData>()
         res.daily?.let { d ->
             for (i in 1 until minOf(1 + dailyRange, d.time.size)) {
-                dailyList.add(DailyForecastData(d.time[i], d.weathercode[i], d.temperature_2m_min[i], d.temperature_2m_max[i], d.sunrise[i], d.sunset[i], uvIndexMax = d.uv_index_max?.getOrNull(i)))
+                val itemCode = d.weather_code.getOrNull(i) ?: 0
+                dailyList.add(DailyForecastData(d.time[i], itemCode, d.temperature_2m_min[i], d.temperature_2m_max[i], d.sunrise[i], d.sunset[i], uvIndexMax = d.uv_index_max?.getOrNull(i)))
             }
         }
 

@@ -46,7 +46,7 @@ The app requests minimal permissions to ensure user privacy while providing full
 CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all weather and air quality data.
 *   **Transparency**: No API keys are required for standard usage.
 *   **Query Optimization**: The app dynamically calculates the minimum required number of forecast days (up to 16) based on your selected hourly and daily ranges to minimize network payload and ensure snappier updates.
-*   **Weather endpoint** (`api.open-meteo.com/v1/forecast`): fetches `hourly=temperature_2m,weathercode,is_day,uv_index` and `daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max`. UV index (hourly and daily max) and sunrise/sunset are always requested regardless of display settings — zero extra network cost.
+*   **Weather endpoint** (`api.open-meteo.com/v1/forecast`): fetches `hourly=temperature_2m,weather_code,is_day,uv_index` and `daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max`. UV index (hourly and daily max) and sunrise/sunset are always requested regardless of display settings — zero extra network cost.
 *   **Air quality endpoint** (`air-quality-api.open-meteo.com/v1/air-quality`): fetches `hourly=european_aqi` for today (`forecast_days=1`). This call is only made when the Air Quality setting is enabled. The full hourly array is stored so each hour in the forecast can show its AQI value.
 *   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names, localized instantly to your selected app language.
 

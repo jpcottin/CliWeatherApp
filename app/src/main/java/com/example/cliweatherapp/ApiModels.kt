@@ -1,5 +1,6 @@
 package com.example.cliweatherapp
 
+import com.google.gson.annotations.SerializedName
 import java.util.*
 
 enum class AppLanguage(val label: String, val locale: Locale) {
@@ -10,9 +11,26 @@ enum class AppLanguage(val label: String, val locale: Locale) {
     JA("日本語", Locale.JAPANESE)
 }
 
-data class Hourly(val time: List<String>, val temperature_2m: List<Double>, val weathercode: List<Int>, val is_day: List<Int>?, val uv_index: List<Double>?)
-data class Daily(val time: List<String>, val weathercode: List<Int>, val temperature_2m_max: List<Double>, val temperature_2m_min: List<Double>, val sunrise: List<String>, val sunset: List<String>, val uv_index_max: List<Double>?)
+data class Hourly(
+    val time: List<String>,
+    @SerializedName("temperature_2m") val temperature_2m: List<Double>,
+    @SerializedName("weather_code") val weather_code: List<Int>,
+    @SerializedName("is_day") val is_day: List<Int>?,
+    @SerializedName("uv_index") val uv_index: List<Double>?
+)
+
+data class Daily(
+    val time: List<String>,
+    @SerializedName("weather_code") val weather_code: List<Int>,
+    @SerializedName("temperature_2m_max") val temperature_2m_max: List<Double>,
+    @SerializedName("temperature_2m_min") val temperature_2m_min: List<Double>,
+    @SerializedName("sunrise") val sunrise: List<String>,
+    @SerializedName("sunset") val sunset: List<String>,
+    @SerializedName("uv_index_max") val uv_index_max: List<Double>?
+)
+
 data class WeatherResponse(val current_weather: CurrentWeather, val hourly: Hourly?, val daily: Daily?, val timezone: String)
+
 data class CurrentWeather(
     val temperature: Double,
     val weathercode: Int,
@@ -26,8 +44,8 @@ interface WeatherApi {
         @retrofit2.http.Query("latitude") lat: Double,
         @retrofit2.http.Query("longitude") lon: Double,
         @retrofit2.http.Query("current_weather") current: Boolean = true,
-        @retrofit2.http.Query("hourly") hourly: String = "temperature_2m,weathercode,is_day,uv_index",
-        @retrofit2.http.Query("daily") daily: String = "weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max",
+        @retrofit2.http.Query("hourly") hourly: String = "temperature_2m,weather_code,is_day,uv_index",
+        @retrofit2.http.Query("daily") daily: String = "weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max",
         @retrofit2.http.Query("timezone") timezone: String = "auto",
         @retrofit2.http.Query("forecast_days") days: Int = 16
     ): WeatherResponse
