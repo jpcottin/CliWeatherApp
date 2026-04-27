@@ -37,6 +37,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.with
 import androidx.compose.runtime.key
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import java.util.Locale
 
 class GlassesWeatherActivity : ComponentActivity() {
@@ -60,6 +62,10 @@ class GlassesWeatherActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Required for Glimmer initial focus
+        // Glimmer initial focus (unavailable in current alpha)
+        // isInitialFocusOnFocusableAvailable = true
+
         val weatherText = intent.getStringExtra(EXTRA_WEATHER_TEXT) ?: ""
         val weatherCode = intent.getIntExtra(EXTRA_WEATHER_CODE, 0)
         val isDay = intent.getIntExtra(EXTRA_IS_DAY, 1)
@@ -91,6 +97,8 @@ class GlassesWeatherActivity : ComponentActivity() {
 
         val goodbyeText = localizedCtx.getString(R.string.goodbye)
         val closeLabel = localizedCtx.getString(R.string.close)
+        val forecastLabel = localizedCtx.getString(R.string.forecast)
+        val pageFormat = localizedCtx.getString(R.string.page_format)
 
         audioInterface = AudioInterface(this, weatherText, locale)
         lifecycle.addObserver(audioInterface)
@@ -107,6 +115,8 @@ class GlassesWeatherActivity : ComponentActivity() {
                     hourlyItems = hourlyItems,
                     is24Hour = is24Hour,
                     closeLabel = closeLabel,
+                    forecastLabel = forecastLabel,
+                    pageFormat = pageFormat,
                     onClose = {
                         audioInterface.speak(goodbyeText)
                         finish()
@@ -140,6 +150,8 @@ fun WeatherGlassesScreenPreview() {
             },
             is24Hour = true,
             closeLabel = "Close",
+            forecastLabel = "Forecast",
+            pageFormat = "Page %1\$d/%2\$d",
             onClose = {}
         )
     }
@@ -157,128 +169,108 @@ fun WeatherGlassesScreen(
     hourlyItems: List<HourlyItem>,
     is24Hour: Boolean,
     closeLabel: String,
+    forecastLabel: String,
+    pageFormat: String,
     onClose: () -> Unit
 ) {
     val displayTemp = convertTemperature(temperature, isCelsius)
     val unit = if (isCelsius) "C" else "F"
     val tempStr = String.format("%.1f°$unit", displayTemp)
 
-    val displayCount = 5  // hours shown at once
-    val swipeStep = 4     // advance by 4 so the last hour of each page is the first of the next
-    var hourlyOffset by remember { mutableIntStateOf(0) }
-    val maxOffset = (hourlyItems.size - displayCount).coerceAtLeast(0)
-    val totalPages = if (maxOffset == 0) 1 else maxOffset / swipeStep + 1
-    val currentPage = hourlyOffset / swipeStep
-    var dragAccum by remember { mutableFloatStateOf(0f) }
+    val displayCount = 7
+    val swipeStep = 6
+    val maxForecastOffset = (hourlyItems.size - displayCount).coerceAtLeast(0)
+    val calculatedPages = if (maxForecastOffset <= 0) 1 else (maxForecastOffset + swipeStep - 1) / swipeStep + 1
+    val totalPages = calculatedPages.coerceAtMost(4)
 
-    val draggableState = rememberDraggableState { delta ->
-        dragAccum += delta
-        when {
-            // swipe right (delta > 0) → go back in time
-            dragAccum > 80f && hourlyOffset > 0 -> {
-                hourlyOffset = (hourlyOffset - swipeStep).coerceAtLeast(0)
-                dragAccum = 0f
-            }
-            // swipe left (delta < 0) → go forward in time
-            dragAccum < -80f && hourlyOffset < maxOffset -> {
-                hourlyOffset = (hourlyOffset + swipeStep).coerceAtMost(maxOffset)
-                dragAccum = 0f
-            }
-        }
-    }
+    // View index 0: Current Weather
+    // View index 1..totalPages: Forecast pages
+    var viewIndex by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Black)
             .draggable(
-                state = draggableState,
+                state = rememberDraggableState { delta ->
+                    // We use a threshold for swiping
+                },
                 orientation = Orientation.Horizontal,
-                onDragStopped = { dragAccum = 0f }
+                onDragStopped = { velocity ->
+                    if (velocity < -300f && viewIndex < totalPages) {
+                        viewIndex++
+                    } else if (velocity > 300f && viewIndex > 0) {
+                        viewIndex--
+                    }
+                }
             ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Main weather card
-            Card(
-                leadingIcon = {
-                    Icon(
-                        imageVector = getWeatherIcon(weatherCode, isDay),
-                        contentDescription = condition,
-                        modifier = Modifier.size(GlimmerTheme.iconSizes.large),
-                        tint = GlimmerTheme.colors.primary
-                    )
-                },
-                title = { Text(tempStr, fontSize = 32.sp, fontWeight = FontWeight.Bold) },
-                subtitle = { Text(condition, fontSize = 20.sp) },
-                action = {
-                    Button(onClick = onClose) { Text(closeLabel, fontSize = 18.sp) }
+        androidx.compose.animation.AnimatedContent(
+            targetState = viewIndex,
+            label = "view_toggle"
+        ) { currentIndex ->
+            if (currentIndex == 0) {
+                Card(
+                    leadingIcon = {
+                        Icon(
+                            imageVector = getWeatherIcon(weatherCode, isDay),
+                            contentDescription = condition,
+                            modifier = Modifier.size(GlimmerTheme.iconSizes.large),
+                            tint = GlimmerTheme.colors.primary
+                        )
+                    },
+                    title = { Text(tempStr, fontSize = 32.sp, fontWeight = FontWeight.Bold) },
+                    subtitle = { Text(condition, fontSize = 20.sp) },
+                    action = {
+                        Button(onClick = onClose) { Text(closeLabel, fontSize = 18.sp) }
+                    }
+                ) {
+                    Text(city, fontSize = 18.sp)
                 }
-            ) {
-                Text(city, fontSize = 18.sp)
-            }
+            } else {
+                val pageIndex = currentIndex - 1
+                val offset = (pageIndex * swipeStep).coerceAtMost(maxForecastOffset)
 
-            // Swipeable hourly forecast card (5 hours per page, swipe anywhere on screen)
-            if (hourlyItems.isNotEmpty()) {
-                Card {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        AnimatedContent(
-                            targetState = hourlyOffset,
-                            transitionSpec = {
-                                if (targetState > initialState) {
-                                    // Sliding forward (to the future)
-                                    fadeIn(animationSpec = tween(300)) with
-                                            fadeOut(animationSpec = tween(300))
-                                } else {
-                                    // Sliding backward
-                                    fadeIn(animationSpec = tween(300)) with
-                                            fadeOut(animationSpec = tween(300))
-                                }
-                            },
-                            label = "hourly_slide"
-                        ) { currentOffset ->
+                if (hourlyItems.isNotEmpty()) {
+                    Card {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(forecastLabel, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(String.format(pageFormat, pageIndex + 1, totalPages), fontSize = 16.sp)
+                            }
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                hourlyItems.drop(currentOffset).take(displayCount).forEach { item ->
-                                    key(item.isoTime) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Text(
-                                                text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
-                                                fontSize = 14.sp
-                                            )
-                                            Icon(
-                                                imageVector = getWeatherIcon(item.code, item.isDay),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(GlimmerTheme.iconSizes.medium),
-                                                tint = GlimmerTheme.colors.primary
-                                            )
-                                            Text(
-                                                text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
-                                                fontSize = 14.sp
-                                            )
-                                        }
+                                hourlyItems.drop(offset).take(displayCount).forEach { item ->
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
+                                            fontSize = 18.sp
+                                        )
+                                        Icon(
+                                            imageVector = getWeatherIcon(item.code, item.isDay),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(GlimmerTheme.iconSizes.medium),
+                                            tint = GlimmerTheme.colors.primary
+                                        )
+                                        Text(
+                                            text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
+                                            fontSize = 18.sp
+                                        )
                                     }
-                                }
-                            }
-                        }
-                        // Page dots
-                        if (totalPages > 1) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                repeat(totalPages) { page ->
-                                    Text(
-                                        text = if (page == currentPage) "●" else "○",
-                                        fontSize = 10.sp
-                                    )
                                 }
                             }
                         }

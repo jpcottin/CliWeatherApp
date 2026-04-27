@@ -1,5 +1,5 @@
 [versions]
-agp = "9.0.0"
+agp = "9.1.0"
 coreKtx = "1.13.1"
 composeBom = "2024.10.00"
 activityCompose = "1.9.0"
@@ -7,8 +7,8 @@ playServicesLocation = "21.2.0"
 retrofit = "2.11.0"
 gson = "2.10.1"
 okhttp = "4.12.0"
-xrProjected = "1.0.0-alpha03"
-xrGlimmer = "1.0.0-alpha02"
+xrProjected = "1.0.0-alpha06"
+xrGlimmer = "1.0.0-alpha11"
 junit = "4.13.2"
 
 [libraries]
