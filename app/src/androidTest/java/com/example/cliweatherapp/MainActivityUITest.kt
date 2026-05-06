@@ -185,6 +185,8 @@ class MainActivityUITest {
         composeTestRule.onNodeWithContentDescription("Share").safeAssertIsDisplayed().safeClick()
         device.waitForIdle(2000)
         device.pressBack()
+        // Wait for MainActivity's compose hierarchy to be re-established before asserting
+        waitForDataToLoad()
         composeTestRule.onNodeWithContentDescription("Share").safeAssertIsDisplayed()
     }
 
