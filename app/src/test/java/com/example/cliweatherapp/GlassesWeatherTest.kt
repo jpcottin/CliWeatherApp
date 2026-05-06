@@ -89,6 +89,63 @@ class GlassesWeatherTest {
         assertEquals(2, (9 - displayCount).coerceAtLeast(0) / swipeStep + 1)
     }
 
+    // --- VerticalStack pagination (displayCount=7, swipeStep=6, cap=4 pages) ---
+    // These mirror the exact constants used in WeatherGlassesScreen since the Glimmer
+    // VerticalStack refactor replaced the AnimatedContent/draggable approach.
+
+    private fun stackTotalPages(itemCount: Int): Int {
+        val displayCount = 7
+        val swipeStep = 6
+        val maxForecastOffset = (itemCount - displayCount).coerceAtLeast(0)
+        val calculatedPages = if (maxForecastOffset <= 0) 1
+                              else (maxForecastOffset + swipeStep - 1) / swipeStep + 1
+        return calculatedPages.coerceAtMost(4)
+    }
+
+    @Test
+    fun verticalStack_singleForecastPageWhenItemsFewerThanDisplayCount() {
+        // Fewer items than displayCount=7 → maxOffset=0 → 1 forecast page
+        assertEquals(1, stackTotalPages(5))
+        assertEquals(1, stackTotalPages(7))
+    }
+
+    @Test
+    fun verticalStack_twoForecastPagesFor12Items() {
+        // 12 items: maxOffset=5, ceil(5/6)+1 = 1+1 = 2 pages
+        assertEquals(2, stackTotalPages(12))
+    }
+
+    @Test
+    fun verticalStack_threeForecastPagesFor19Items() {
+        // 19 items: maxOffset=12, ceil(12/6)+1 = 2+1 = 3 pages
+        assertEquals(3, stackTotalPages(19))
+    }
+
+    @Test
+    fun verticalStack_pageCappedAtFour() {
+        // Very large list should never exceed 4 forecast pages
+        assertEquals(4, stackTotalPages(100))
+    }
+
+    @Test
+    fun verticalStack_totalStackItems_includesCurrentWeatherCard() {
+        // VerticalStack always has 1 current-weather item + totalForecastPages items
+        val forecastPages = stackTotalPages(12)
+        val totalStackItems = 1 + forecastPages
+        assertEquals(3, totalStackItems) // 1 weather + 2 forecast
+    }
+
+    @Test
+    fun verticalStack_forecastOffsetPerPage() {
+        val swipeStep = 6
+        val items = List(19) { HourlyItem("", 0, 1, 0.0) }
+        val maxForecastOffset = (items.size - 7).coerceAtLeast(0) // 12
+        // Page 0 → offset 0, page 1 → offset 6, page 2 → offset 12 (clamped)
+        assertEquals(0,  (0 * swipeStep).coerceAtMost(maxForecastOffset))
+        assertEquals(6,  (1 * swipeStep).coerceAtMost(maxForecastOffset))
+        assertEquals(12, (2 * swipeStep).coerceAtMost(maxForecastOffset))
+    }
+
     @Test
     fun hourlyItems_emptyWhenNoArrayData() {
         val codes = IntArray(0)

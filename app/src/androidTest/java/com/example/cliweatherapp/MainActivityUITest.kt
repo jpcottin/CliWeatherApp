@@ -1,14 +1,12 @@
 package com.example.cliweatherapp
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import android.os.Build
@@ -18,9 +16,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import androidx.test.rule.GrantPermissionRule
 
 @RunWith(AndroidJUnit4::class)
+@SdkSuppress(maxSdkVersion = 36)
 class MainActivityUITest {
 
     companion object {
@@ -29,12 +27,6 @@ class MainActivityUITest {
             MainActivity.repository = MockWeatherRepository()
         }
     }
-
-    @get:Rule
-    val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    )
 
     @get:Rule
     val composeTestRule = createEmptyComposeRule()

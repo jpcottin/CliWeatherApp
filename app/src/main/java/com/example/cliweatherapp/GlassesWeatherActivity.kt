@@ -3,10 +3,7 @@ package com.example.cliweatherapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,30 +12,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.xr.glimmer.Button
 import androidx.xr.glimmer.Card
+import androidx.xr.glimmer.CardDefaults
 import androidx.xr.glimmer.GlimmerTheme
 import androidx.xr.glimmer.Icon
 import androidx.xr.glimmer.Text
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.with
-import androidx.compose.runtime.key
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.background
+import androidx.xr.glimmer.googlefonts.createGoogleSansFlexTypography
+import androidx.xr.glimmer.stack.VerticalStack
 import java.util.Locale
 
 class GlassesWeatherActivity : ComponentActivity() {
@@ -60,11 +48,10 @@ class GlassesWeatherActivity : ComponentActivity() {
 
     private lateinit var audioInterface: AudioInterface
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        ComposeUiFlags.isInitialFocusOnFocusableAvailable = true
         super.onCreate(savedInstanceState)
-        // Required for Glimmer initial focus
-        // Glimmer initial focus (unavailable in current alpha)
-        // isInitialFocusOnFocusableAvailable = true
 
         val weatherText = intent.getStringExtra(EXTRA_WEATHER_TEXT) ?: ""
         val weatherCode = intent.getIntExtra(EXTRA_WEATHER_CODE, 0)
@@ -104,7 +91,7 @@ class GlassesWeatherActivity : ComponentActivity() {
         lifecycle.addObserver(audioInterface)
 
         setContent {
-            GlimmerTheme {
+            GlimmerTheme(typography = createGoogleSansFlexTypography()) {
                 WeatherGlassesScreen(
                     weatherCode = weatherCode,
                     isDay = isDay,
@@ -136,7 +123,7 @@ data class HourlyItem(val isoTime: String, val code: Int, val isDay: Int, val te
 )
 @Composable
 fun WeatherGlassesScreenPreview() {
-    GlimmerTheme {
+    GlimmerTheme(typography = createGoogleSansFlexTypography()) {
         WeatherGlassesScreen(
             weatherCode = 0,
             isDay = 1,
@@ -157,7 +144,6 @@ fun WeatherGlassesScreenPreview() {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun WeatherGlassesScreen(
     weatherCode: Int,
@@ -183,35 +169,15 @@ fun WeatherGlassesScreen(
     val calculatedPages = if (maxForecastOffset <= 0) 1 else (maxForecastOffset + swipeStep - 1) / swipeStep + 1
     val totalPages = calculatedPages.coerceAtMost(4)
 
-    // View index 0: Current Weather
-    // View index 1..totalPages: Forecast pages
-    var viewIndex by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .draggable(
-                state = rememberDraggableState { delta ->
-                    // We use a threshold for swiping
-                },
-                orientation = Orientation.Horizontal,
-                onDragStopped = { velocity ->
-                    if (velocity < -300f && viewIndex < totalPages) {
-                        viewIndex++
-                    } else if (velocity > 300f && viewIndex > 0) {
-                        viewIndex--
-                    }
-                }
-            ),
-        contentAlignment = Alignment.Center
     ) {
-        androidx.compose.animation.AnimatedContent(
-            targetState = viewIndex,
-            label = "view_toggle"
-        ) { currentIndex ->
-            if (currentIndex == 0) {
+        VerticalStack(modifier = Modifier.fillMaxSize()) {
+            item {
                 Card(
+                    modifier = Modifier.itemDecoration(CardDefaults.shape),
                     leadingIcon = {
                         Icon(
                             imageVector = getWeatherIcon(weatherCode, isDay),
@@ -220,20 +186,22 @@ fun WeatherGlassesScreen(
                             tint = GlimmerTheme.colors.primary
                         )
                     },
-                    title = { Text(tempStr, fontSize = 32.sp, fontWeight = FontWeight.Bold) },
-                    subtitle = { Text(condition, fontSize = 20.sp) },
+                    title = { Text(tempStr, style = GlimmerTheme.typography.titleLarge) },
+                    subtitle = { Text(condition, style = GlimmerTheme.typography.bodySmall) },
                     action = {
-                        Button(onClick = onClose) { Text(closeLabel, fontSize = 18.sp) }
+                        Button(onClick = onClose) {
+                            Text(closeLabel, style = GlimmerTheme.typography.caption)
+                        }
                     }
                 ) {
-                    Text(city, fontSize = 18.sp)
+                    Text(city, style = GlimmerTheme.typography.caption)
                 }
-            } else {
-                val pageIndex = currentIndex - 1
-                val offset = (pageIndex * swipeStep).coerceAtMost(maxForecastOffset)
+            }
 
-                if (hourlyItems.isNotEmpty()) {
-                    Card {
+            if (hourlyItems.isNotEmpty()) {
+                items(totalPages) { pageIndex ->
+                    val offset = (pageIndex * swipeStep).coerceAtMost(maxForecastOffset)
+                    Card(modifier = Modifier.itemDecoration(CardDefaults.shape)) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -243,8 +211,11 @@ fun WeatherGlassesScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(forecastLabel, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                Text(String.format(pageFormat, pageIndex + 1, totalPages), fontSize = 16.sp)
+                                Text(forecastLabel, style = GlimmerTheme.typography.titleSmall)
+                                Text(
+                                    String.format(pageFormat, pageIndex + 1, totalPages),
+                                    style = GlimmerTheme.typography.caption
+                                )
                             }
 
                             Row(
@@ -258,7 +229,7 @@ fun WeatherGlassesScreen(
                                     ) {
                                         Text(
                                             text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
-                                            fontSize = 18.sp
+                                            style = GlimmerTheme.typography.caption
                                         )
                                         Icon(
                                             imageVector = getWeatherIcon(item.code, item.isDay),
@@ -268,7 +239,7 @@ fun WeatherGlassesScreen(
                                         )
                                         Text(
                                             text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
-                                            fontSize = 18.sp
+                                            style = GlimmerTheme.typography.caption
                                         )
                                     }
                                 }
