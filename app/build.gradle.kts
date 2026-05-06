@@ -57,6 +57,7 @@ dependencies {
     // Android XR – projected display (AI glasses detection + UI)
     implementation(libs.androidx.xr.projected)
     implementation(libs.androidx.xr.glimmer)
+    implementation(libs.androidx.xr.glimmer.google.fonts)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
     // Testing
