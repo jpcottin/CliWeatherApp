@@ -15,13 +15,14 @@ import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
@@ -120,6 +121,7 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         tts = TextToSpeech(this, this)
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
@@ -367,7 +369,7 @@ fun WeatherScreen(windowSizeClass: WindowSizeClass, onSpeak: (String, Locale) ->
     }
     val resolvedColors = bgColors.map { colorResource(it) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).statusBarsPadding()) {
+    Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(resolvedColors)).safeDrawingPadding()) {
         if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact) {
             VerticalLayout(localizedContext, timezoneId, is24Hour, permissionGranted, weatherCode, isDay, temperature, isCelsius, locationInfo, currentLat, currentLon, useGps, mapErrorMessage, appLanguage, hourlyForecasts, dailyForecasts, isRefreshing, refreshAction, speakAction, { launcher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }, onMapClick, showSunriseSunset, showUvIndex, currentUvIndex, showAirQuality, currentAirQuality, aqiHourlyMap)
         } else {
