@@ -39,7 +39,7 @@ class MainActivityAPI37Test {
         device.executeShellCommand("pm grant $pkg android.permission.ACCESS_COARSE_LOCATION")
 
         // Inject Mock Repository
-        MainActivity.repository = MockWeatherRepository()
+        WeatherViewModel.repository = MockWeatherRepository()
 
         // Launch Activity
         val intent = Intent(context, MainActivity::class.java)

@@ -24,7 +24,7 @@ class MainActivityUITest {
     companion object {
         init {
             // Inject mock repository for all tests
-            MainActivity.repository = MockWeatherRepository()
+            WeatherViewModel.repository = MockWeatherRepository()
         }
     }
 
@@ -191,11 +191,10 @@ class MainActivityUITest {
     }
 
     @Test
-    fun testDefaultModeIsMap() {
+    fun testMapModeSelectedByDefault() {
         waitForDataToLoad()
         composeTestRule.onNodeWithContentDescription("Settings").safeClick()
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
         composeTestRule.onNodeWithTag("switch_gps").assertIsOn()
         composeTestRule.onNodeWithText("OK").safeClick()
     }
@@ -205,7 +204,6 @@ class MainActivityUITest {
         waitForDataToLoad()
         composeTestRule.onNodeWithContentDescription("Settings").safeClick()
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
         composeTestRule.onNodeWithTag("switch_gps").safeClick()
         composeTestRule.onNodeWithText("OK").safeClick()
         waitForDataToLoad()
@@ -219,7 +217,6 @@ class MainActivityUITest {
         waitForDataToLoad()
         composeTestRule.onNodeWithContentDescription("Settings").safeClick()
         composeTestRule.waitForIdle()
-        Thread.sleep(500)
 
         // Both are off by default
         composeTestRule.onNodeWithTag("switch_uv_index").assertIsOff()

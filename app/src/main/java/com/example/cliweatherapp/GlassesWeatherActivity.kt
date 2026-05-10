@@ -144,6 +144,117 @@ fun WeatherGlassesScreenPreview() {
     }
 }
 
+@Preview(
+    name = "Glasses Weather - night",
+    device = "spec:width=1280dp,height=800dp,dpi=240",
+    showBackground = true
+)
+@Composable
+fun WeatherGlassesScreenNightPreview() {
+    GlimmerTheme(typography = createGoogleSansFlexTypography()) {
+        WeatherGlassesScreen(
+            weatherCode = 0,
+            isDay = 0,
+            temperature = 14.0,
+            isCelsius = true,
+            city = "Tokyo",
+            condition = "Clear sky",
+            hourlyItems = List(6) { i ->
+                HourlyItem("2026-04-20T${(20 + i).toString().padStart(2, '0')}:00", 0, 0, 14.0 - i * 0.3)
+            },
+            is24Hour = true,
+            closeLabel = "Close",
+            forecastLabel = "Forecast",
+            pageFormat = "Page %1\$d/%2\$d",
+            onClose = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Glasses Weather - no hourly",
+    device = "spec:width=1280dp,height=800dp,dpi=240",
+    showBackground = true
+)
+@Composable
+fun WeatherGlassesScreenNoHourlyPreview() {
+    GlimmerTheme(typography = createGoogleSansFlexTypography()) {
+        WeatherGlassesScreen(
+            weatherCode = 2,
+            isDay = 1,
+            temperature = 19.0,
+            isCelsius = true,
+            city = "Berlin",
+            condition = "Partly cloudy",
+            hourlyItems = emptyList(),
+            is24Hour = true,
+            closeLabel = "Close",
+            forecastLabel = "Forecast",
+            pageFormat = "Page %1\$d/%2\$d",
+            onClose = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Glasses Weather - Fahrenheit",
+    device = "spec:width=1280dp,height=800dp,dpi=240",
+    showBackground = true
+)
+@Composable
+fun WeatherGlassesScreenFahrenheitPreview() {
+    GlimmerTheme(typography = createGoogleSansFlexTypography()) {
+        WeatherGlassesScreen(
+            weatherCode = 0,
+            isDay = 1,
+            temperature = 25.0,
+            isCelsius = false,
+            city = "New York",
+            condition = "Clear sky",
+            hourlyItems = List(6) { i ->
+                HourlyItem("2026-04-20T${(14 + i).toString().padStart(2, '0')}:00", 0, 1, 25.0 - i * 0.5)
+            },
+            is24Hour = false,
+            closeLabel = "Close",
+            forecastLabel = "Forecast",
+            pageFormat = "Page %1\$d/%2\$d",
+            onClose = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Glasses Weather - multi-page",
+    device = "spec:width=1280dp,height=800dp,dpi=240",
+    showBackground = true
+)
+@Composable
+fun WeatherGlassesScreenMultiPagePreview() {
+    GlimmerTheme(typography = createGoogleSansFlexTypography()) {
+        WeatherGlassesScreen(
+            weatherCode = 61,
+            isDay = 1,
+            temperature = 12.0,
+            isCelsius = true,
+            city = "London",
+            condition = "Light rain",
+            hourlyItems = List(24) { i ->
+                HourlyItem(
+                    "2026-04-20T${(i % 24).toString().padStart(2, '0')}:00",
+                    listOf(61, 63, 65, 61, 0, 1)[i % 6],
+                    if (i in 6..20) 1 else 0,
+                    12.0 - i * 0.1
+                )
+            },
+            is24Hour = true,
+            closeLabel = "Close",
+            forecastLabel = "Forecast",
+            pageFormat = "Page %1\$d/%2\$d",
+            onClose = {}
+        )
+    }
+}
+
 @Composable
 fun WeatherGlassesScreen(
     weatherCode: Int,

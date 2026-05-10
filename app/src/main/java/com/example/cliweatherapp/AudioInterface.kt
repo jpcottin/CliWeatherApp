@@ -27,7 +27,7 @@ class AudioInterface(
     }
 
     fun speak(text: String) {
-        tts.speak(text, TextToSpeech.QUEUE_ADD, null, text.take(32))
+        if (::tts.isInitialized) tts.speak(text, TextToSpeech.QUEUE_ADD, null, text.take(32))
     }
 
     override fun onStop(owner: LifecycleOwner) {

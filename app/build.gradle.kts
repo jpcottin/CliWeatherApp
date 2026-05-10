@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.androidx.material3.windowsize)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     
     // Networking
     implementation(libs.retrofit)

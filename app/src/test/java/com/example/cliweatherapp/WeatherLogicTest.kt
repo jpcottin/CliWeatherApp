@@ -4,6 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.NightsStay
+import androidx.compose.material.icons.rounded.Thunderstorm
+import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
@@ -81,6 +83,51 @@ class WeatherLogicTest {
         assertEquals(Color(0xFFEF5350), uvColor(10.9))
         assertEquals(Color(0xFFAB47BC), uvColor(11.0))  // extreme (≥ 11)
         assertEquals(Color(0xFFAB47BC), uvColor(15.0))
+    }
+
+    @Test
+    fun testGetWeatherIconForShowers() {
+        assertEquals(Icons.Rounded.WaterDrop, getWeatherIcon(80, 1))
+        assertEquals(Icons.Rounded.WaterDrop, getWeatherIcon(81, 1))
+        assertEquals(Icons.Rounded.WaterDrop, getWeatherIcon(82, 1))
+        assertEquals(Icons.Rounded.WaterDrop, getWeatherIcon(80, 0))
+    }
+
+    @Test
+    fun testGetWeatherIconFor95() {
+        assertEquals(Icons.Rounded.Thunderstorm, getWeatherIcon(95, 1))
+        assertEquals(Icons.Rounded.Thunderstorm, getWeatherIcon(95, 0))
+    }
+
+    @Test
+    fun testGetBackgroundColorsForShowers() {
+        assertEquals(R.color.rainy_blue, getBackgroundColors(80, 1)[0])
+        assertEquals(R.color.rainy_blue, getBackgroundColors(81, 1)[0])
+        assertEquals(R.color.rainy_blue, getBackgroundColors(82, 1)[0])
+    }
+
+    @Test
+    fun testGetBackgroundColorsForStorm() {
+        assertEquals(R.color.rainy_blue, getBackgroundColors(95, 1)[0])
+    }
+
+    @Test
+    fun testFormatSunriseSunset24h() {
+        val result = formatSunriseSunset("2026-04-20T06:30", Locale.ENGLISH, true)
+        assertEquals("06:30", result)
+    }
+
+    @Test
+    fun testFormatSunriseSunset12h() {
+        val result = formatSunriseSunset("2026-04-20T18:45", Locale.ENGLISH, false)
+        assertEquals("6:45 PM", result)
+    }
+
+    @Test
+    fun testUvColorNegativeEdge() {
+        // Negative UV treated same as < 3 (green)
+        assertEquals(Color(0xFF66BB6A), uvColor(-1.0))
+        assertEquals(Color(0xFF66BB6A), uvColor(-99.0))
     }
 
     @Test
