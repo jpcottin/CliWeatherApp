@@ -20,18 +20,18 @@ class PreferenceManager(context: Context) {
     fun getUseGps() = prefs.getBoolean("use_gps", false)
 
     fun saveLocation(lat: Double, lon: Double) = prefs.edit()
-        .putFloat("last_lat", lat.toFloat())
-        .putFloat("last_lon", lon.toFloat())
+        .putString("last_lat", lat.toString())
+        .putString("last_lon", lon.toString())
         .apply()
-    
-    fun getLatitude() = prefs.getFloat("last_lat", 37.422f).toDouble()
-    fun getLongitude() = prefs.getFloat("last_lon", -122.084f).toDouble()
+
+    fun getLatitude() = try { prefs.getString("last_lat", "37.422")!!.toDouble() } catch (_: ClassCastException) { 37.422 }
+    fun getLongitude() = try { prefs.getString("last_lon", "-122.084")!!.toDouble() } catch (_: ClassCastException) { -122.084 }
 
     fun saveIs24Hour(value: Boolean) = prefs.edit().putBoolean("is_24h", value).apply()
     fun getIs24Hour(context: Context) = prefs.getBoolean("is_24h", DateFormat.is24HourFormat(context))
 
     fun saveHourlyRange(value: Int) = prefs.edit().putInt("hourly_range", value).apply()
-    fun getHourlyRange() = prefs.getInt("hourly_range", 6)
+    fun getHourlyRange() = prefs.getInt("hourly_range", 8)
 
     fun saveDailyRange(value: Int) = prefs.edit().putInt("daily_range", value).apply()
     fun getDailyRange() = prefs.getInt("daily_range", 6)
