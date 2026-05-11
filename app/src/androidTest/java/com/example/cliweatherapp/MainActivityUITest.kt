@@ -108,7 +108,12 @@ class MainActivityUITest {
 
     private fun waitForDataToLoad() {
         composeTestRule.waitUntil(30000) {
-            composeTestRule.onAllNodesWithText("°", substring = true).fetchSemanticsNodes().isNotEmpty()
+            try {
+                composeTestRule.onAllNodesWithText("°", substring = true).fetchSemanticsNodes().isNotEmpty()
+            } catch (_: IllegalStateException) {
+                // Compose hierarchy not yet attached (e.g. immediately after back-press); keep polling
+                false
+            }
         }
         composeTestRule.waitForIdle()
     }
