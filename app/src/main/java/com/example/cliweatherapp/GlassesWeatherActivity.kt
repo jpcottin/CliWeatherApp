@@ -25,6 +25,8 @@ import androidx.xr.glimmer.CardDefaults
 import androidx.xr.glimmer.GlimmerTheme
 import androidx.xr.glimmer.Icon
 import androidx.xr.glimmer.Text
+import androidx.xr.glimmer.TitleChip
+import androidx.xr.glimmer.TitleChipDefaults
 import androidx.xr.glimmer.googlefonts.createGoogleSansFlexTypography
 import androidx.xr.glimmer.stack.VerticalStack
 import java.util.Locale
@@ -312,23 +314,23 @@ fun WeatherGlassesScreen(
             if (hourlyItems.isNotEmpty()) {
                 items(totalPages) { pageIndex ->
                     val offset = (pageIndex * swipeStep).coerceAtMost(maxForecastOffset)
-                    Card(modifier = Modifier.itemDecoration(CardDefaults.shape)) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(forecastLabel, style = GlimmerTheme.typography.titleSmall)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(TitleChipDefaults.associatedContentSpacing)
+                    ) {
+                        TitleChip {
+                            Text(forecastLabel)
+                        }
+
+                        Card(
+                            modifier = Modifier.itemDecoration(CardDefaults.shape),
+                            subtitle = {
                                 Text(
                                     String.format(pageFormat, pageIndex + 1, totalPages),
                                     style = GlimmerTheme.typography.caption
                                 )
                             }
-
+                        ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly

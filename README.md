@@ -57,7 +57,7 @@ The application features a dedicated `GlassesWeatherActivity` that projects a st
 **Glimmer Implementation Details:**
 *   **Target SDK:** The application targets SDK 37, a prerequisite for the latest Glimmer components.
 *   **Additive Display Optimization:** The root container enforces a pure black background (`Color.Black`), which renders as 100% transparent on additive AR lenses, ensuring the UI doesn't block the real world.
-*   **"One Thing at a Time":** The UI strictly adheres to Glimmer guidelines by avoiding multiple simultaneous cards. It uses `AnimatedContent` to allow users to swipe between the Current Weather and a paginated Forecast, minimizing field-of-view obstruction.
+*   **"One Thing at a Time":** The UI strictly adheres to Glimmer guidelines by avoiding multiple simultaneous cards. It uses `VerticalStack` to allow users to swipe between the Current Weather and a paginated Forecast, minimizing field-of-view obstruction.
 *   **Legibility Constraints:** All typography enforces a minimum text size of 18sp to guarantee readability on optical displays, preventing shimmering and aliasing.
 *   **Input Mapping:** Horizontal swipe gestures on the glasses' touchpad seamlessly paginate the forecast data.
 ### What appears on the glasses
