@@ -23,12 +23,16 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file(localProps["signing.storeFile"] as String)
-            storePassword = localProps["signing.storePassword"] as String
-            keyAlias = localProps["signing.keyAlias"] as String
-            keyPassword = localProps["signing.keyPassword"] as String
+    val hasSigningConfig = localProps.containsKey("signing.storeFile")
+
+    if (hasSigningConfig) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(localProps["signing.storeFile"] as String)
+                storePassword = localProps["signing.storePassword"] as String
+                keyAlias = localProps["signing.keyAlias"] as String
+                keyPassword = localProps["signing.keyPassword"] as String
+            }
         }
     }
 
@@ -36,7 +40,9 @@ android {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("release")
+            if (hasSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
