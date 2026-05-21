@@ -1,4 +1,4 @@
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import android.content.Context
 import android.speech.tts.TextToSpeech

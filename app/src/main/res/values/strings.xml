@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">CliWeatherApp</string>
+    <string name="app_name">WeatherGlance</string>
     <string name="display_category_xr_projected">xr_projected</string>
     <string name="current_time">Current Time</string>
     <string name="location_label">Location</string>

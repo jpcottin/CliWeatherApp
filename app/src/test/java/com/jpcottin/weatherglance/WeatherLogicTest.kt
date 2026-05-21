@@ -1,4 +1,4 @@
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cloud

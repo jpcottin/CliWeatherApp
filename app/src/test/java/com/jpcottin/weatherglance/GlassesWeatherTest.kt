@@ -1,4 +1,4 @@
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

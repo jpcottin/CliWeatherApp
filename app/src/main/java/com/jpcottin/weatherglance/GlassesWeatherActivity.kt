@@ -1,4 +1,4 @@
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

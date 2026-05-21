@@ -1,4 +1,4 @@
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures

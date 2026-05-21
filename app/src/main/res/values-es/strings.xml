@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">CliWeatherApp</string>
+    <string name="app_name">WeatherGlance</string>
     <string name="current_time">Hora Actual</string>
     <string name="location_label">Ubicación</string>
     <string name="refresh">Actualizar</string>

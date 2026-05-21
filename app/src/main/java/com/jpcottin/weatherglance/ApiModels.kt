@@ -1,4 +1,4 @@
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import android.annotation.SuppressLint
 import com.google.gson.annotations.SerializedName

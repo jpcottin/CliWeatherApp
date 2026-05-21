@@ -1,25 +1,42 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
 }
 
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
 android {
-    namespace = "com.example.cliweatherapp"
+    namespace = "com.jpcottin.weatherglance"
     compileSdk = 37
     defaultConfig {
-        applicationId = "com.example.cliweatherapp"
+        applicationId = "com.jpcottin.weatherglance"
         minSdk = 29
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-        
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProps["signing.storeFile"] as String)
+            storePassword = localProps["signing.storePassword"] as String
+            keyAlias = localProps["signing.keyAlias"] as String
+            keyPassword = localProps["signing.keyPassword"] as String
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -28,6 +45,10 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        disable += "Instantiatable"
     }
 }
 

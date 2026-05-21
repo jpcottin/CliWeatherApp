@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalProjectedApi::class)
 
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import android.Manifest
 import android.content.Intent
@@ -136,7 +136,7 @@ fun WeatherScreen(
                 val file = File(cachePath, "weather_snapshot.png")
                 FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
                 val contentUri = FileProvider.getUriForFile(
-                    context, "com.example.cliweatherapp.fileprovider", file
+                    context, "com.jpcottin.weatherglance.fileprovider", file
                 )
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "image/png"

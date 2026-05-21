@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalProjectedApi::class)
 
-package com.example.cliweatherapp
+package com.jpcottin.weatherglance
 
 import android.app.Application
 import android.content.pm.PackageManager
