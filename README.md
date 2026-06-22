@@ -1,5 +1,7 @@
 # CliWeatherApp
 
+[![Android CI](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml/badge.svg)](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml)
+
 CliWeatherApp is a robust, modern Android weather application built with Jetpack Compose. It provides real-time weather updates, detailed forecasts, and interactive location tools, all wrapped in a beautiful, responsive Material 3 interface.
 
 ## 🌟 Key Features
