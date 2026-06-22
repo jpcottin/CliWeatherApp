@@ -1,3 +1,9 @@
+// NOTE: the Phone/Foldable/Tablet goldens embed the raster world map, whose
+// native downscaling is not bit-identical across rendering environments. Their
+// reference images are recorded on the CI runner (ubuntu-latest) so they match
+// the environment that validates them. If you change these previews, regenerate
+// the references on CI rather than locally, or `validateDebugScreenshotTest`
+// will fail in the pipeline. The component-only previews are host-portable.
 package com.jpcottin.weatherglance
 
 import androidx.compose.material3.MaterialTheme
