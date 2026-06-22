@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.screenshot)
 }
 
 val localProps = Properties().apply {
@@ -53,6 +54,9 @@ android {
         compose = true
     }
 
+    @Suppress("UnstableApiUsage")
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
+
     lint {
         disable += "Instantiatable"
     }
@@ -99,4 +103,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     debugImplementation(libs.androidx.ui.tooling)
+
+    // Compose Preview Screenshot Tests
+    screenshotTestImplementation(libs.androidx.ui.tooling)
+    screenshotTestImplementation(libs.screenshot.validation.api)
 }

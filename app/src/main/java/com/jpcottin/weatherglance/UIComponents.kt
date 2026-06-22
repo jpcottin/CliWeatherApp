@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -286,14 +287,25 @@ fun HorizontalLayout(
     }
 }
 
+// Fixed instant used only when rendering in Compose preview / screenshot tests
+// (2026-04-20T14:30:00Z), so the clock in golden screenshots is reproducible.
+private const val PREVIEW_CLOCK_MILLIS = 1_776_695_400_000L
+
 @Composable
 fun SectionTimeDisplay(ctx: Context, timezoneId: String?, lang: AppLanguage, is24h: Boolean, compact: Boolean = false) {
-    var rawTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(Date(), timezoneId, lang.locale, is24h)) }
+    // Under Compose preview / screenshot rendering, freeze the clock to a fixed
+    // instant so golden screenshots stay deterministic (a live clock would diff
+    // on every run). Has no effect on the real app.
+    val inspection = LocalInspectionMode.current
+    fun now() = if (inspection) Date(PREVIEW_CLOCK_MILLIS) else Date()
+    var rawTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(now(), timezoneId, lang.locale, is24h)) }
 
-    LaunchedEffect(timezoneId, lang, is24h) {
-        while (true) {
-            rawTime = formatTime(Date(), timezoneId, lang.locale, is24h)
-            delay(1000)
+    if (!inspection) {
+        LaunchedEffect(timezoneId, lang, is24h) {
+            while (true) {
+                rawTime = formatTime(Date(), timezoneId, lang.locale, is24h)
+                delay(1000)
+            }
         }
     }
 
