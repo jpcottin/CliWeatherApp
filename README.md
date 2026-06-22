@@ -107,7 +107,15 @@ Quality is guaranteed through a multi-layered testing approach:
 *   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and API response parsing. `GlassesWeatherTest` covers intent extra key constants (including `EXTRA_LANGUAGE_TAG`), `HourlyItem` construction from parallel arrays, edge cases (empty arrays, mismatched list lengths), temperature display, hourly time formatting (12h/24h, midnight edge cases), and BCP-47 language-tag round-trips for the TTS locale fallback logic.
 *   **Compose UI Tests (`androidTest`)**: Verified interactions with buttons, switches, and maps using the `compose-ui-test` framework. Includes tests asserting the glasses button is absent when no XR device is connected (emulator default).
 *   **UI Automator**: Specialized tests for handling system-level dialogs (permissions) and hardware-level changes (device orientation).
+*   **Compose Preview Screenshot Tests (`screenshotTest`)**: Golden-image regression tests via the `com.android.compose.screenshot` plugin. They render the real layouts at **Phone, Foldable, and Tablet** sizes (plus the hourly/daily forecast rows and the settings dialog) and compare against committed reference PNGs. The clock is frozen to a fixed instant under preview rendering (`LocalInspectionMode`) so the goldens stay deterministic.
 *   **State Persistence**: Tests ensure that your settings (language, units, location) are perfectly preserved across app restarts using `SharedPreferences`.
+
+## 🔄 Continuous Integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
+
+*   **`build` job**: lint (`lintDebug`) → unit tests (`testDebugUnitTest`) → screenshot validation (`validateDebugScreenshotTest`) → debug APK assembly (`assembleDebug`).
+*   **`instrumented-tests` job**: runs `connectedDebugAndroidTest` on the emulator. Because the app targets **API 37**, instrumented coverage runs on three gating **API 37.0** legs (`google_apis_ps16k`, x86_64) across the `swiftshader`, `lavapipe`, and `auto` GPU backends. The `MainActivityAPI37Test` exercises the API 37+ code paths there.
 
 ## 🗺️ Assets & Attributions
 

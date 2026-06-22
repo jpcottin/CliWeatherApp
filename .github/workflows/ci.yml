@@ -1,70 +1,158 @@
-name: CI
+name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
-  unit-tests:
-    name: Unit Tests
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
+    - name: Run Lint
+      run: ./gradlew lintDebug
 
-      - name: Upload unit test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-results
-          path: app/build/reports/tests/testDebugUnitTest/
+    - name: Run Unit Tests
+      run: ./gradlew testDebugUnitTest
+
+    - name: Upload unit test report on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-report
+        path: app/build/reports/tests/testDebugUnitTest/
+
+    - name: Validate Compose Preview Screenshots
+      run: ./gradlew :app:validateDebugScreenshotTest
+
+    - name: Upload screenshot test report on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: screenshot-test-report
+        path: app/build/reports/screenshotTest/preview/debug/
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
 
   instrumented-tests:
-    name: Instrumented Tests
+    name: Instrumented Tests (API ${{ matrix.api-level }}${{ matrix.suffix && format(' {0}', matrix.suffix) || '' }} emulator)
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The app targets API 37 (and ships a MainActivityAPI37Test that only
+          # runs on API >= 37), so the 37.0 ps16k legs are the gating coverage.
+          # Each needs -feature GLDirectMem; see extra-options.
+          - api-level: '37.0'
+            suffix: 'swiftshader'
+            target: google_apis_ps16k
+            ram-size: 4096M
+            memory: 4096
+            gpu: swiftshader_indirect
+            cores: 4
+            extra-options: -feature GLDirectMem,HasSharedSlotsHostMemoryAllocator
+          - api-level: '37.0'
+            suffix: 'lavapipe'
+            target: google_apis_ps16k
+            ram-size: 4096M
+            memory: 4096
+            gpu: lavapipe
+            cores: 4
+            extra-options: -feature GLDirectMem,HasSharedSlotsHostMemoryAllocator
+          - api-level: '37.0'
+            suffix: 'auto'
+            target: google_apis_ps16k
+            ram-size: 4096M
+            memory: 4096
+            gpu: auto
+            cores: 4
+            extra-options: -feature GLDirectMem,HasSharedSlotsHostMemoryAllocator
+
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+    # The Android emulator needs hardware acceleration (KVM) to run an x86_64
+    # system image at a usable speed. KVM is available on the Linux runners but
+    # the device node needs permissions opened up for the action.
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
 
-      - name: Run instrumented tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          script: ./gradlew connectedDebugAndroidTest
+    # RAM and GPU mode are matrix-tuned per image (heap-size is left at the
+    # emulator default). We cold-boot (-no-snapshot), enlarge the userdata
+    # partition so the app APK can stage, allow a generous boot timeout, and
+    # hold off adb until boot completes (-delay-adb). cores is matrix-tuned and
+    # left to the emulator default where unset.
+    - name: Run instrumented tests
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: ${{ matrix.api-level }}
+        arch: x86_64
+        target: ${{ matrix.target }}
+        # A real phone hardware profile: MainActivityAPI37Test drives the UI with
+        # hardcoded UiAutomator coordinates that assume a Pixel-sized screen, so
+        # the default tiny AVD (320x640) would put the dialog's OK button
+        # off-screen.
+        profile: pixel_6
+        channel: ${{ matrix.channel || 'stable' }}
+        force-avd-creation: true
+        ram-size: ${{ matrix.ram-size }}
+        cores: ${{ matrix.cores }}
+        disk-size: 8192M
+        emulator-boot-timeout: 900
+        emulator-options: -no-snapshot -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none -memory ${{ matrix.memory }} -delay-adb -verbose -show-kernel -debug-metrics -metrics-collection ${{ matrix.extra-options || '' }}
+        disable-animations: true
+        script: |
+          echo "===== AVD config.ini ====="; cat "$HOME/.android/avd/test.avd/config.ini" 2>/dev/null || echo "(config.ini not found)"
+          echo "===== emulator advancedFeatures.ini ====="; cat "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/emulator/lib/advancedFeatures.ini" 2>/dev/null || echo "(not found)"
+          echo "===== emulator advancedFeaturesCanary.ini ====="; cat "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/emulator/lib/advancedFeaturesCanary.ini" 2>/dev/null || echo "(not found)"
+          echo "===== system-image advancedFeatures*.ini (if any) ====="; find "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/system-images/android-37.0" -iname 'advancedFeatures*.ini' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \; 2>/dev/null || echo "(none)"
+          adb wait-for-device
+          adb logcat -v time > "${{ github.workspace }}/emulator_logcat.txt" &
+          ./gradlew :app:connectedDebugAndroidTest || { echo "=== test run failed; capturing guest diagnostics ==="; adb root >/dev/null 2>&1 || true; adb wait-for-device || true; echo "----- crash logcat buffer -----"; adb logcat -d -b crash 2>/dev/null | tail -n 300 || true; echo "----- /data/tombstones -----"; for f in $(adb shell ls /data/tombstones 2>/dev/null | tr -d '\r'); do case "$f" in *.pb) ;; *) echo "===== $f ====="; adb shell cat "/data/tombstones/$f" 2>/dev/null || true ;; esac; done; exit 1; }
 
-      - name: Upload instrumented test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: instrumented-test-results
-          path: app/build/reports/androidTests/connected/
+    - name: Dump guest logcat on failure
+      if: failure()
+      run: |
+        echo "=== Emulator Logcat (last 1000 lines) ==="
+        if [ -f "${{ github.workspace }}/emulator_logcat.txt" ]; then
+          tail -n 1000 "${{ github.workspace }}/emulator_logcat.txt"
+        else
+          echo "Logcat file not found."
+        fi
+
+    - name: Upload instrumented test report on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: instrumented-test-report-api${{ matrix.api-level }}${{ matrix.suffix && format('-{0}', matrix.suffix) || '' }}
+        path: app/build/reports/androidTests/connected/

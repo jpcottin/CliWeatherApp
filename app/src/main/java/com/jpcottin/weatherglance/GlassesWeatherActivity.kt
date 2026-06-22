@@ -17,6 +17,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.xr.glimmer.Button
@@ -276,6 +277,10 @@ fun WeatherGlassesScreen(
     val unit = if (isCelsius) "C" else "F"
     val tempStr = String.format("%.1f°$unit", displayTemp)
 
+    // Read the locale observably from the composition so the forecast hour
+    // labels recompose if the device locale changes (lint: NonObservableLocale).
+    val locale = LocalConfiguration.current.locales[0]
+
     val displayCount = 7
     val swipeStep = 6
     val maxForecastOffset = (hourlyItems.size - displayCount).coerceAtLeast(0)
@@ -341,7 +346,7 @@ fun WeatherGlassesScreen(
                                         verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Text(
-                                            text = formatForecastHour(item.isoTime, Locale.getDefault(), is24Hour),
+                                            text = formatForecastHour(item.isoTime, locale, is24Hour),
                                             style = GlimmerTheme.typography.caption
                                         )
                                         Icon(
