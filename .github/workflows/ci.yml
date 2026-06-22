@@ -118,6 +118,11 @@ jobs:
         api-level: ${{ matrix.api-level }}
         arch: x86_64
         target: ${{ matrix.target }}
+        # A real phone hardware profile: MainActivityAPI37Test drives the UI with
+        # hardcoded UiAutomator coordinates that assume a Pixel-sized screen, so
+        # the default tiny AVD (320x640) would put the dialog's OK button
+        # off-screen.
+        profile: pixel_6
         channel: ${{ matrix.channel || 'stable' }}
         force-avd-creation: true
         ram-size: ${{ matrix.ram-size }}
