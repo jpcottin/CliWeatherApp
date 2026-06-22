@@ -4,7 +4,8 @@ name: Record Screenshots (temporary)
 # runner so they match the environment that validates them, then uploads them
 # as an artifact to commit. Removed once the goldens are recorded.
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "ci/screenshot-and-api37-emulator-matrix" ]
 
 jobs:
   record:
