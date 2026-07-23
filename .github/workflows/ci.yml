@@ -59,14 +59,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # minSdk 29 / target 37: google_apis legs cover the supported range;
+          # target 37: google_apis legs cover recent API levels (minSdk 29 itself
+          # is not emulated: the google_apis 29 image boot-loops flakily on the
+          # hosted runners);
           # the 37.0 stable leg keeps MainActivityAPI37Test (API >= 37 only)
           # gating.
-          - api-level: '29'
-            target: google_apis
-            ram-size: 2048M
-            memory: 2048
-            gpu: auto
           - api-level: '33'
             target: google_apis
             ram-size: 2048M
