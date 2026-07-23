@@ -3,11 +3,11 @@
 [![Android CI](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml)
 
 <details>
-<summary><b>CI details</b> — emulator matrix, API 29 → 37.1, plus an Android CLI leg</summary>
+<summary><b>CI details</b> — emulator matrix, API 33 → 37.1, plus an Android CLI leg</summary>
 
 | Legs | Image | Emulator channel | GPU | Gating |
 |---|---|---|---|---|
-| API 29, 33, 36 | `google_apis` x86_64 | stable | auto | ✅ blocking |
+| API 33, 36 | `google_apis` x86_64 | stable | auto | ✅ blocking |
 | API 37.0 | `google_apis_ps16k` (16 KB page size) | stable | lavapipe | ✅ blocking (runs MainActivityAPI37Test) |
 | API 37.0 | `google_apis_ps16k` | canary (`--channel=3`) | lavapipe, auto | non-blocking |
 | API 37.1 | `google_apis_ps16k` | canary | lavapipe, auto | non-blocking |
