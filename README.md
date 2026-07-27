@@ -3,19 +3,36 @@
 [![Android CI](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml)
 
 <details>
-<summary><b>CI details</b> — emulator matrix, API 33 → 37.1, plus an Android CLI leg</summary>
+<summary><b>CI details</b> — emulator matrix, API 36 → 37.1, plus Android CLI and Emulator Preview legs</summary>
 
 | Legs | Image | Emulator channel | GPU | Gating |
 |---|---|---|---|---|
-| API 33, 36 | `google_apis` x86_64 | stable | auto | ✅ blocking |
+| API 36 | `google_apis` x86_64 | stable | auto | ✅ blocking |
 | API 37.0 | `google_apis_ps16k` (16 KB page size) | stable | lavapipe | ✅ blocking (runs MainActivityAPI37Test) |
 | API 37.0 | `google_apis_ps16k` | canary (`--channel=3`) | lavapipe, auto | non-blocking |
 | API 37.1 | `google_apis_ps16k` | canary | lavapipe, auto | non-blocking |
 | Android CLI experiment | `google_apis_ps16k` 37.0 | canary | emulator default | non-blocking |
+| Emulator Preview (`emulators;latest`) | `google_apis_ps16k` 37.0 | preview package | auto | non-blocking |
+| Emulator Preview multi-run (snapshot cycles) | `google_apis_ps16k` 37.0 | preview package | auto | non-blocking |
+| Android CLI multi-run (snapshot cycles) | `google_apis_ps16k` 37.0 | canary | emulator default | non-blocking |
 
 The Android CLI leg drives the whole flow with the [`android` CLI](https://d.android.com/tools/agents/android-cli) (`android sdk install --canary`, `android emulator create/start/stop`) instead of `sdkmanager`/`avdmanager` and the emulator-runner action.
 
 All emulator-runner legs use the `pixel_6` profile, full diagnostics (`-verbose -show-kernel -debug-metrics -metrics-collection`), and a `cmdline-tools;latest` update so `avdmanager` writes a valid `target=android-37.x` (the runner's preinstalled version writes `android-0`, which the emulator clamps to API 3, disabling the Vulkan/GLDirectMem auto-enable the ps16k images need).
+
+
+Two of the non-blocking jobs run a **snapshot multi-run experiment**: the emulator is booted four
+times against the same AVD with quickboot snapshots enabled, the app is launched only on the first
+cycle, and every later cycle checks whether the snapshot brought it back by itself — still running,
+and still rendering. The app is deliberately never relaunched after a restore, since that is the
+thing being measured. One job drives the Emulator Preview package, the other the canary emulator
+through the `android` CLI, so the same experiment can be compared across both.
+
+Because this app's UI is static between refreshes, rendering is judged with `android layout` rather
+than by diffing two screenshots — a screenshot diff would report a stall on every cycle. A non-empty
+layout tree plus a focused window means the UI is present and enumerable. Screenshots are still
+captured and uploaded for every cycle. `scripts/replay-preview-multirun.sh` replays the multi-run
+job locally in a few minutes instead of a push cycle.
 
 </details>
 
