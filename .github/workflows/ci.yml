@@ -64,11 +64,6 @@ jobs:
           # hosted runners);
           # the 37.0 stable leg keeps MainActivityAPI37Test (API >= 37 only)
           # gating.
-          - api-level: '33'
-            target: google_apis
-            ram-size: 2048M
-            memory: 2048
-            gpu: auto
           - api-level: '36'
             target: google_apis
             ram-size: 2048M
