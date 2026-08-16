@@ -35,7 +35,6 @@ class MainActivityAPI37Test {
 
         // Force permissions
         val pkg = context.packageName
-        device.executeShellCommand("pm grant $pkg android.permission.ACCESS_FINE_LOCATION")
         device.executeShellCommand("pm grant $pkg android.permission.ACCESS_COARSE_LOCATION")
 
         // Inject Mock Repository
