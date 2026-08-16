@@ -340,6 +340,12 @@ jobs:
           "    <boolean name=\"use_gps\" value=\"true\" />" \
           "</map>" \
           | adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cat > shared_prefs/weather_prefs.xml'"
+        # A fresh CI AVD may have device location services off, which makes the
+        # fused provider return null no matter what the GPS engine receives.
+        adb shell cmd location set-location-enabled true || adb shell settings put secure location_mode 3
+        adb shell settings get secure location_mode || true
+        # Show one geo fix response for diagnostics (e.g. console auth errors).
+        adb emu geo fix 139.6917 35.6895
         # Stream the Tokyo fix while the app starts and fetches; a single fix
         # can be missed if it lands before the location request is active.
         ( for _ in $(seq 1 90); do adb emu geo fix 139.6917 35.6895 >/dev/null 2>&1; sleep 1; done ) &
@@ -354,6 +360,8 @@ jobs:
         if [ -z "$FOUND" ]; then
           echo "::error::App did not resolve the geo fix to Shinjuku/Tokyo"
           android layout 2>/dev/null | grep '"text"' | head -40 || true
+          echo "--- location provider state ---"
+          adb shell dumpsys location 2>/dev/null | grep -iE 'location.enabled|last location|provider' | head -20 || true
           exit 1
         fi
         echo "Geo fix resolved to Shinjuku City; checking the forecast loaded"
