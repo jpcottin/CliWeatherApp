@@ -351,10 +351,15 @@ jobs:
         ( for _ in $(seq 1 90); do adb emu geo fix 139.6917 35.6895 >/dev/null 2>&1; sleep 1; done ) &
         GEO_PID=$!
         adb shell am start -n "$PKG/.MainActivity"
+        # The app fetches once at launch, which can be before the GPS engine
+        # has accepted a fix; tap Refresh between polls to retry the fetch.
         FOUND=""
         for _ in $(seq 1 12); do
           sleep 5
-          if android layout 2>/dev/null | grep -qE "Shinjuku|Tokyo"; then FOUND=yes; break; fi
+          LAYOUT=$(android layout 2>/dev/null || true)
+          if printf '%s' "$LAYOUT" | grep -qE "Shinjuku|Tokyo"; then FOUND=yes; break; fi
+          C=$(printf '%s' "$LAYOUT" | grep -oE '"text": ?"Refresh", ?"center": ?"\[[0-9]+,[0-9]+\]"' | grep -oE '[0-9]+,[0-9]+' | head -1)
+          if [ -n "$C" ]; then adb shell input tap "${C%,*}" "${C#*,}"; fi
         done
         kill "$GEO_PID" 2>/dev/null || true
         if [ -z "$FOUND" ]; then

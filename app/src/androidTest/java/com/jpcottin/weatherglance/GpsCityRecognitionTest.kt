@@ -19,6 +19,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 /**
  * End-to-end GPS pipeline check: a mock fused location placed on a well-known
@@ -47,6 +48,13 @@ class GpsCityRecognitionTest {
     private var origLang: AppLanguage = AppLanguage.EN
     private lateinit var origRepository: WeatherRepository
 
+    // getCurrentLocation wants a *fresh* fix; a single mock push can be
+    // considered stale by the time the app requests. Keep pushing with new
+    // timestamps for the whole test.
+    @Volatile
+    private var keepPushing = false
+    private var pusher: Thread? = null
+
     @Before
     fun setUp() {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -71,21 +79,34 @@ class GpsCityRecognitionTest {
         fused = LocationServices.getFusedLocationProviderClient(context)
         Tasks.await(fused.setMockMode(true), 10, TimeUnit.SECONDS)
         pushMockLocation()
+        keepPushing = true
+        pusher = thread(name = "mock-location-pusher") {
+            while (keepPushing) {
+                try {
+                    pushMockLocation()
+                } catch (_: Exception) {
+                }
+                Thread.sleep(2000)
+            }
+        }
 
         scenario = ActivityScenario.launch(Intent(context, MainActivity::class.java))
     }
 
     @After
     fun tearDown() {
-        scenario?.close()
-        try {
-            Tasks.await(fused.setMockMode(false), 10, TimeUnit.SECONDS)
-        } catch (_: Exception) {
+        // Every step independent: a failure in one must not skip the rest,
+        // or state leaks into the tests that run after this class.
+        keepPushing = false
+        runCatching { pusher?.join(3000) }
+        runCatching { scenario?.close() }
+        runCatching { Tasks.await(fused.setMockMode(false), 10, TimeUnit.SECONDS) }
+        runCatching { prefManager.saveUseGps(origUseGps) }
+        runCatching { prefManager.saveLanguage(origLang) }
+        runCatching { WeatherViewModel.repository = origRepository }
+        runCatching {
+            device.executeShellCommand("appops set ${context.packageName} android:mock_location default")
         }
-        prefManager.saveUseGps(origUseGps)
-        prefManager.saveLanguage(origLang)
-        WeatherViewModel.repository = origRepository
-        device.executeShellCommand("appops set ${context.packageName} android:mock_location default")
     }
 
     private fun pushMockLocation() {
@@ -101,16 +122,12 @@ class GpsCityRecognitionTest {
 
     @Test
     fun gpsLocationAtKnownCityShowsCityNameInUi() {
-        // The fetch runs at activity launch; keep the mock location fresh and
-        // retry via the Refresh button in case geocoding or the API is slow.
-        var cityFound = false
-        for (attempt in 1..3) {
-            pushMockLocation()
-            if (device.wait(Until.hasObject(By.textContains(CITY_NAME)), 25000)) {
-                cityFound = true
-                break
-            }
+        // The fetch runs at activity launch; retry once via the Refresh button
+        // in case the first fetch ran before the mock location was accepted.
+        var cityFound = device.wait(Until.hasObject(By.textContains(CITY_NAME)), 20000)
+        if (!cityFound) {
             device.findObject(By.textContains("Refresh"))?.click()
+            cityFound = device.wait(Until.hasObject(By.textContains(CITY_NAME)), 20000)
         }
         assert(cityFound) { "$CITY_NAME not shown for mock GPS ($CITY_LAT, $CITY_LON)" }
 
