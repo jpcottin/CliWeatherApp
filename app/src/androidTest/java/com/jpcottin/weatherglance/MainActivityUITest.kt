@@ -63,6 +63,7 @@ class MainActivityUITest {
 
         // 1. Force permissions via shell
         val pkg = context.packageName
+        device.executeShellCommand("pm grant $pkg android.permission.ACCESS_FINE_LOCATION")
         device.executeShellCommand("pm grant $pkg android.permission.ACCESS_COARSE_LOCATION")
 
         // 2. Save current user settings

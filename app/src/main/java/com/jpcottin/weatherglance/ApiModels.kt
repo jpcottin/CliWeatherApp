@@ -167,7 +167,7 @@ class RetrofitWeatherRepository : WeatherRepository {
                     location = withTimeoutOrNull(5000L) {
                         val cts = CancellationTokenSource()
                         fused.getCurrentLocation(
-                            com.google.android.gms.location.Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                            com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
                             cts.token
                         ).await()
                     }
@@ -183,7 +183,7 @@ class RetrofitWeatherRepository : WeatherRepository {
                     try {
                         val lm = context.getSystemService(android.content.Context.LOCATION_SERVICE)
                             as android.location.LocationManager
-                        location = lm.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                        location = lm.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
                     } catch (_: Exception) {}
                 }
 
