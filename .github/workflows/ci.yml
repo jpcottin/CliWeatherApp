@@ -362,6 +362,8 @@ jobs:
           if [ -n "$C" ]; then adb shell input tap "${C%,*}" "${C#*,}"; fi
         done
         kill "$GEO_PID" 2>/dev/null || true
+        # Screenshot for the artifacts, useful evidence in both outcomes.
+        android screen capture -o "${{ github.workspace }}/geo_fix_tokyo.png" || true
         if [ -z "$FOUND" ]; then
           echo "::error::App did not resolve the geo fix to Shinjuku/Tokyo"
           android layout 2>/dev/null | grep '"text"' | head -40 || true
@@ -372,6 +374,14 @@ jobs:
         echo "Geo fix resolved to Shinjuku City; checking the forecast loaded"
         android layout 2>/dev/null | grep -qiE '°|\\u00b0' \
           || { echo "::error::City resolved but no temperature shown"; exit 1; }
+
+    - name: Upload geo-fix screenshot
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: geo-fix-tokyo-screenshot
+        path: geo_fix_tokyo.png
+        if-no-files-found: ignore
 
     - name: Stop emulator
       if: always()
