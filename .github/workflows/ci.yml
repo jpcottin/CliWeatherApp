@@ -339,7 +339,7 @@ jobs:
           "<map>" \
           "    <boolean name=\"use_gps\" value=\"true\" />" \
           "</map>" \
-          | adb shell run-as "$PKG" sh -c 'mkdir -p shared_prefs && cat > shared_prefs/weather_prefs.xml'
+          | adb shell "run-as $PKG sh -c 'mkdir -p shared_prefs && cat > shared_prefs/weather_prefs.xml'"
         # Stream the Tokyo fix while the app starts and fetches; a single fix
         # can be missed if it lands before the location request is active.
         ( for _ in $(seq 1 90); do adb emu geo fix 139.6917 35.6895 >/dev/null 2>&1; sleep 1; done ) &
