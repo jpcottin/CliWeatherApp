@@ -318,6 +318,48 @@ jobs:
     - name: Run instrumented tests
       run: ./gradlew :app:connectedDebugAndroidTest
 
+    # End-to-end GPS check via the emulator console: stream a Tokyo geo fix and
+    # verify the app reverse-geocodes it to Shinjuku City and loads a forecast.
+    # Complements GpsCityRecognitionTest, which uses FLP mock mode — an
+    # on-device test cannot drive `adb emu geo fix` itself.
+    - name: GPS geo-fix end-to-end check
+      timeout-minutes: 8
+      run: |
+        SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+        export PATH="$SDK/platform-tools:$PATH"
+        PKG=com.jpcottin.weatherglance
+        # connectedDebugAndroidTest uninstalls the app afterwards; reinstall it.
+        android install --apks app/build/outputs/apk/debug/app-debug.apk
+        adb shell pm grant "$PKG" android.permission.ACCESS_FINE_LOCATION
+        adb shell pm grant "$PKG" android.permission.ACCESS_COARSE_LOCATION
+        # The app defaults to map mode; enable GPS mode directly in the debug
+        # build's prefs so the launch fetch uses the fused location.
+        printf '%s\n' \
+          "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>" \
+          "<map>" \
+          "    <boolean name=\"use_gps\" value=\"true\" />" \
+          "</map>" \
+          | adb shell run-as "$PKG" sh -c 'mkdir -p shared_prefs && cat > shared_prefs/weather_prefs.xml'
+        # Stream the Tokyo fix while the app starts and fetches; a single fix
+        # can be missed if it lands before the location request is active.
+        ( for _ in $(seq 1 90); do adb emu geo fix 139.6917 35.6895 >/dev/null 2>&1; sleep 1; done ) &
+        GEO_PID=$!
+        adb shell am start -n "$PKG/.MainActivity"
+        FOUND=""
+        for _ in $(seq 1 12); do
+          sleep 5
+          if android layout 2>/dev/null | grep -qE "Shinjuku|Tokyo"; then FOUND=yes; break; fi
+        done
+        kill "$GEO_PID" 2>/dev/null || true
+        if [ -z "$FOUND" ]; then
+          echo "::error::App did not resolve the geo fix to Shinjuku/Tokyo"
+          android layout 2>/dev/null | grep '"text"' | head -40 || true
+          exit 1
+        fi
+        echo "Geo fix resolved to Shinjuku City; checking the forecast loaded"
+        android layout 2>/dev/null | grep -qiE '°|\\u00b0' \
+          || { echo "::error::City resolved but no temperature shown"; exit 1; }
+
     - name: Stop emulator
       if: always()
       run: android emulator stop "$DEVICE" || true
