@@ -227,8 +227,6 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun hasLocationPermission(ctx: android.content.Context) =
-        ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_FINE_LOCATION) ==
-                PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.ACCESS_COARSE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
 }
