@@ -107,7 +107,9 @@ fun WeatherScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                        android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
                         android.content.pm.PackageManager.PERMISSION_GRANTED
                 viewModel.updatePermission(granted)
             }
@@ -118,6 +120,7 @@ fun WeatherScreen(
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { perms ->
         viewModel.updatePermission(
+            perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         )
     }
@@ -235,6 +238,7 @@ fun WeatherScreen(
                     onSpeak = speakAction,
                     onRequestPermission = {
                         launcher.launch(arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION
                         ))
                     },
@@ -248,6 +252,7 @@ fun WeatherScreen(
                     onSpeak = speakAction,
                     onRequestPermission = {
                         launcher.launch(arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION
                         ))
                     },
