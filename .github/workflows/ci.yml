@@ -113,6 +113,24 @@ jobs:
             gpu: auto
             cores: 4
             experimental: true
+          - api-level: '37.2'
+            suffix: 'canary-lavapipe'
+            target: google_apis_ps16k
+            channel: canary
+            ram-size: 4096M
+            memory: 4096
+            gpu: lavapipe
+            cores: 4
+            experimental: true
+          - api-level: '37.2'
+            suffix: 'canary-auto'
+            target: google_apis_ps16k
+            channel: canary
+            ram-size: 4096M
+            memory: 4096
+            gpu: auto
+            cores: 4
+            experimental: true
 
     steps:
     - uses: actions/checkout@v5
