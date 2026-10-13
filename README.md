@@ -3,7 +3,7 @@
 [![Android CI](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jpcottin/CliWeatherApp/actions/workflows/ci.yml)
 
 <details>
-<summary><b>CI details</b> — emulator matrix, API 36 → 37.1, plus Android CLI and Emulator Preview legs</summary>
+<summary><b>CI details</b> — emulator matrix, API 36 → 37.2, plus Android CLI and Emulator Preview legs</summary>
 
 | Legs | Image | Emulator channel | GPU | Gating |
 |---|---|---|---|---|
@@ -11,6 +11,7 @@
 | API 37.0 | `google_apis_ps16k` (16 KB page size) | stable | lavapipe | ✅ blocking (runs MainActivityAPI37Test) |
 | API 37.0 | `google_apis_ps16k` | canary (`--channel=3`) | lavapipe, auto | non-blocking |
 | API 37.1 | `google_apis_ps16k` | canary | lavapipe, auto | non-blocking |
+| API 37.2 | `google_apis_ps16k` | canary | lavapipe, auto | non-blocking |
 | Android CLI experiment | `google_apis_ps16k` 37.0 | canary | emulator default | non-blocking |
 | Emulator Preview (`emulators;latest`) | `google_apis_ps16k` 37.0 | preview package | auto | non-blocking |
 | Emulator Preview multi-run (snapshot cycles) | `google_apis_ps16k` 37.0 | preview package | auto | non-blocking |
@@ -151,7 +152,7 @@ Quality is guaranteed through a multi-layered testing approach:
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
 
 *   **`build` job**: lint (`lintDebug`) → unit tests (`testDebugUnitTest`) → screenshot validation (`validateDebugScreenshotTest`) → debug APK assembly (`assembleDebug`).
-*   **`instrumented-tests` job**: runs `connectedDebugAndroidTest` on the emulator. Because the app targets **API 37**, instrumented coverage runs on three gating **API 37.0** legs (`google_apis_ps16k`, x86_64) across the `swiftshader`, `lavapipe`, and `auto` GPU backends. The `MainActivityAPI37Test` exercises the API 37+ code paths there.
+*   **`instrumented-tests` job**: runs `connectedDebugAndroidTest` on the emulator. Because the app targets **API 37**, instrumented coverage runs on a gating **API 36** leg (`google_apis`, `auto`) and a gating **API 37.0** leg (`google_apis_ps16k`, x86_64, `lavapipe`), plus non-blocking canary legs on API 37.0, 37.1 and 37.2 with the `lavapipe` and `auto` GPU backends. The `MainActivityAPI37Test` exercises the API 37+ code paths on the API 37 legs.
 
 ## 🗺️ Assets & Attributions
 
