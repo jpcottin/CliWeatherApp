@@ -223,10 +223,14 @@ jobs:
   # (https://d.android.com/tools/agents/android-cli) instead of
   # sdkmanager/avdmanager and the emulator-runner action.
   android-cli-experiment:
-    name: Android CLI experiment (API 37.0 canary emulator)
+    name: Android CLI experiment (API ${{ matrix.api-level }} canary emulator)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: ['37.0', '37.2']
 
     steps:
     - uses: actions/checkout@v5
@@ -258,16 +262,16 @@ jobs:
         android info
         android sdk list | head -40
 
-    - name: Install canary emulator and API 37.0 ps16k image with the CLI
+    - name: Install canary emulator and the ps16k image with the CLI
       run: |
-        android sdk install --canary emulator platform-tools system-images/android-37.0/google_apis_ps16k/x86_64
-        android sdk list | grep -iE "^  emulator|android-37" || true
+        android sdk install --canary emulator platform-tools system-images/android-${{ matrix.api-level }}/google_apis_ps16k/x86_64
+        android sdk list | grep -iE "^  emulator|android-${{ matrix.api-level }}" || true
 
     # 'android emulator create' is profile-based with no way to pin an image (it
     # picks google_apis_playstore, whose first-boot Play overlays steal window
     # focus and break Espresso). An AVD is just ini files, so create the profile
     # with the CLI and retarget it at the pinned image — no sdkmanager/avdmanager.
-    - name: Create AVD with the CLI and retarget it to API 37.0 ps16k
+    - name: Create AVD with the CLI and retarget it to the ps16k image
       run: |
         android emulator create medium_phone
         DEVICE="$(android emulator list | head -n1)"
@@ -284,8 +288,8 @@ jobs:
         set_ini() {
           if grep -q "^$1=" "$CFG"; then sed -i "s#^$1=.*#$1=$2#" "$CFG"; else echo "$1=$2" >> "$CFG"; fi
         }
-        sed -i 's/^target=.*/target=android-37.0/' "$HOME/.android/avd/$DEVICE.ini"
-        set_ini image.sysdir.1 'system-images/android-37.0/google_apis_ps16k/x86_64/'
+        sed -i 's/^target=.*/target=android-${{ matrix.api-level }}/' "$HOME/.android/avd/$DEVICE.ini"
+        set_ini image.sysdir.1 'system-images/android-${{ matrix.api-level }}/google_apis_ps16k/x86_64/'
         set_ini tag.id google_apis
         set_ini tag.display 'Google APIs'
         set_ini PlayStore.enabled false
@@ -397,7 +401,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v7
       with:
-        name: geo-fix-tokyo-screenshot
+        name: geo-fix-tokyo-screenshot-${{ matrix.api-level }}
         path: geo_fix_tokyo.png
         if-no-files-found: ignore
 
@@ -413,7 +417,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v7
       with:
-        name: instrumented-test-report-android-cli-experiment
+        name: instrumented-test-report-android-cli-experiment-${{ matrix.api-level }}
         path: app/build/reports/androidTests/connected/
 
   # Experiment: run the new "Android Emulator (Preview)" package
@@ -421,10 +425,14 @@ jobs:
   # currently API 37+ only) by launching its binary directly; the emulator-runner
   # action hardcodes $SDK/emulator/emulator and cannot use it.
   emulator-preview-experiment:
-    name: Emulator Preview experiment (emulators/latest, API 37.0)
+    name: Emulator Preview experiment (emulators/latest, API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: ['37.0', '37.2']
 
     steps:
       - uses: actions/checkout@v5
@@ -440,6 +448,8 @@ jobs:
       # emulator package, and libpulse.
       - name: Set up Android Emulator Preview
         uses: ./.github/actions/preview-emulator
+        with:
+          api-level: ${{ matrix.api-level }}
 
       - name: Boot preview emulator
         timeout-minutes: 12
@@ -497,7 +507,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: instrumented-test-report-emulator-preview
+          name: instrumented-test-report-emulator-preview-${{ matrix.api-level }}
           path: app/build/reports/androidTests/
 
   # Experiment: snapshot save/restore of a live Compose app on the preview
