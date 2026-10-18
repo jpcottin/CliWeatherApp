@@ -81,3 +81,33 @@ fun formatForecastDay(isoDate: String, l: Locale): String =
         ld.format(DateTimeFormatter.ofPattern("EEE", l))
             .replaceFirstChar { it.uppercase() }
     }.getOrDefault(isoDate)
+
+// ── Glasses forecast pager ──────────────────────────────────────────────────
+// The lens shows the hourly forecast as a vertical stack of pages of
+// GLASSES_FORECAST_DISPLAY_COUNT hours, each page starting
+// GLASSES_FORECAST_SWIPE_STEP hours after the previous one (one hour of
+// overlap), and never more than GLASSES_FORECAST_MAX_PAGES pages.
+
+const val GLASSES_FORECAST_DISPLAY_COUNT = 7
+const val GLASSES_FORECAST_SWIPE_STEP = 6
+const val GLASSES_FORECAST_MAX_PAGES = 4
+
+/** Number of forecast pages for [itemCount] hourly items: one when they fit, otherwise enough to reach the last item, capped at [maxPages]. */
+fun glassesForecastPages(
+    itemCount: Int,
+    displayCount: Int = GLASSES_FORECAST_DISPLAY_COUNT,
+    swipeStep: Int = GLASSES_FORECAST_SWIPE_STEP,
+    maxPages: Int = GLASSES_FORECAST_MAX_PAGES,
+): Int {
+    val maxOffset = (itemCount - displayCount).coerceAtLeast(0)
+    val pages = if (maxOffset <= 0) 1 else (maxOffset + swipeStep - 1) / swipeStep + 1
+    return pages.coerceAtMost(maxPages)
+}
+
+/** Index of the first hourly item on [pageIndex]; the last page is pulled back so it is always full. */
+fun glassesForecastOffset(
+    pageIndex: Int,
+    itemCount: Int,
+    displayCount: Int = GLASSES_FORECAST_DISPLAY_COUNT,
+    swipeStep: Int = GLASSES_FORECAST_SWIPE_STEP,
+): Int = (pageIndex * swipeStep).coerceAtMost((itemCount - displayCount).coerceAtLeast(0))
