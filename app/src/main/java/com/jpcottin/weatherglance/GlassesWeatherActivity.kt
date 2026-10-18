@@ -281,11 +281,8 @@ fun WeatherGlassesScreen(
     // labels recompose if the device locale changes (lint: NonObservableLocale).
     val locale = LocalConfiguration.current.locales[0]
 
-    val displayCount = 7
-    val swipeStep = 6
-    val maxForecastOffset = (hourlyItems.size - displayCount).coerceAtLeast(0)
-    val calculatedPages = if (maxForecastOffset <= 0) 1 else (maxForecastOffset + swipeStep - 1) / swipeStep + 1
-    val totalPages = calculatedPages.coerceAtMost(4)
+    val displayCount = GLASSES_FORECAST_DISPLAY_COUNT
+    val totalPages = glassesForecastPages(hourlyItems.size)
 
     Box(
         modifier = Modifier
@@ -318,7 +315,7 @@ fun WeatherGlassesScreen(
 
             if (hourlyItems.isNotEmpty()) {
                 items(totalPages) { pageIndex ->
-                    val offset = (pageIndex * swipeStep).coerceAtMost(maxForecastOffset)
+                    val offset = glassesForecastOffset(pageIndex, hourlyItems.size)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(TitleChipDefaults.associatedContentSpacing)
