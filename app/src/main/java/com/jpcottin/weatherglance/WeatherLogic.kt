@@ -111,3 +111,62 @@ fun glassesForecastOffset(
     displayCount: Int = GLASSES_FORECAST_DISPLAY_COUNT,
     swipeStep: Int = GLASSES_FORECAST_SWIPE_STEP,
 ): Int = (pageIndex * swipeStep).coerceAtMost((itemCount - displayCount).coerceAtLeast(0))
+
+// ── Forecast slicing ────────────────────────────────────────────────────────
+// What the screens show out of one Open-Meteo response.
+
+/** Hourly and daily forecast rows plus the UV index of the current hour. */
+data class Forecasts(
+    val hourly: List<HourlyForecastData>,
+    val daily: List<DailyForecastData>,
+    val currentUvIndex: Double?,
+)
+
+/** Days to request so that [hourlyRange] hours from now and [dailyRange] days after today are covered. */
+fun forecastDaysNeeded(hourlyRange: Int, dailyRange: Int): Int =
+    maxOf(1, (hourlyRange + 23) / 24, dailyRange + 1)
+
+/**
+ * Slices [res] into [hourlyRange] hourly rows starting at the current hour (the first hourly
+ * slot at or after `current_weather.time`, or the first slot when none matches) and
+ * [dailyRange] daily rows starting tomorrow. Missing per-hour day flags default to day, a
+ * missing per-hour weather code falls back to the current one, and a missing daily code to 0.
+ */
+fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): Forecasts {
+    val hourlyList = mutableListOf<HourlyForecastData>()
+    var uvIndex: Double? = null
+    res.hourly?.let { h ->
+        val nowStr = res.current_weather.time
+        val startIndex = h.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
+        uvIndex = h.uvIndex?.getOrNull(startIndex)
+        for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
+            hourlyList.add(
+                HourlyForecastData(
+                    h.time[i],
+                    h.weatherCode.getOrNull(i) ?: res.current_weather.weatherCode,
+                    h.isDay?.getOrNull(i) ?: 1,
+                    h.temperature[i],
+                    uvIndex = h.uvIndex?.getOrNull(i)
+                )
+            )
+        }
+    }
+
+    val dailyList = mutableListOf<DailyForecastData>()
+    res.daily?.let { d ->
+        for (i in 1 until minOf(1 + dailyRange, d.time.size)) {
+            dailyList.add(
+                DailyForecastData(
+                    d.time[i],
+                    d.weatherCode.getOrNull(i) ?: 0,
+                    d.minTemperature[i],
+                    d.maxTemperature[i],
+                    d.sunrise[i],
+                    d.sunset[i],
+                    uvIndexMax = d.uvIndexMax?.getOrNull(i)
+                )
+            )
+        }
+    }
+    return Forecasts(hourlyList, dailyList, uvIndex)
+}

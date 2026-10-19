@@ -227,7 +227,7 @@ class RetrofitWeatherRepository : WeatherRepository {
             }
             onLoc(address.first, address.second, finalLat, finalLon)
 
-            val neededDays = maxOf(1, (hourlyRange + 23) / 24, dailyRange + 1)
+            val neededDays = forecastDaysNeeded(hourlyRange, dailyRange)
             val res = withTimeoutOrNull(5000L) {
                 RetrofitClient.api.getWeather(finalLat, finalLon, days = neededDays)
             } ?: run {
@@ -235,50 +235,16 @@ class RetrofitWeatherRepository : WeatherRepository {
                 return
             }
 
-            val hourlyList = mutableListOf<HourlyForecastData>()
-            var uvIndex: Double? = null
-            res.hourly?.let { h ->
-                val nowStr = res.current_weather.time
-                val startIndex = h.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
-                uvIndex = h.uvIndex?.getOrNull(startIndex)
-                for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
-                    hourlyList.add(
-                        HourlyForecastData(
-                            h.time[i],
-                            h.weatherCode.getOrNull(i) ?: res.current_weather.weatherCode,
-                            h.isDay?.getOrNull(i) ?: 1,
-                            h.temperature[i],
-                            uvIndex = h.uvIndex?.getOrNull(i)
-                        )
-                    )
-                }
-            }
-
-            val dailyList = mutableListOf<DailyForecastData>()
-            res.daily?.let { d ->
-                for (i in 1 until minOf(1 + dailyRange, d.time.size)) {
-                    dailyList.add(
-                        DailyForecastData(
-                            d.time[i],
-                            d.weatherCode.getOrNull(i) ?: 0,
-                            d.minTemperature[i],
-                            d.maxTemperature[i],
-                            d.sunrise[i],
-                            d.sunset[i],
-                            uvIndexMax = d.uvIndexMax?.getOrNull(i)
-                        )
-                    )
-                }
-            }
+            val forecasts = buildForecasts(res, hourlyRange, dailyRange)
 
             onWeather(
                 res.current_weather.weatherCode,
                 res.current_weather.temperature,
                 res.timezone,
                 res.current_weather.isDay,
-                hourlyList,
-                dailyList,
-                uvIndex
+                forecasts.hourly,
+                forecasts.daily,
+                forecasts.currentUvIndex
             )
         } catch (e: Exception) {
             onLoc("Error: ${e.message}", "Error", 0.0, 0.0)
