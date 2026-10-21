@@ -170,3 +170,23 @@ fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): For
     }
     return Forecasts(hourlyList, dailyList, uvIndex)
 }
+
+// ── Air quality ──────────────────────────────────────────────────────────────
+
+data class AirQualityNow(val current: Int?, val hourly: Map<String, Int>)
+
+/**
+ * The air-quality reading for the hour at [nowIso] (the "yyyy-MM-dd'T'HH:00"
+ * form the hourly times use) and the hour -> AQI map behind it. The current
+ * hour is the first sample at or after now, falling back to the first sample
+ * of a response that is entirely in the past; hours without a value are left
+ * out of the map, and a missing value at the current hour leaves current null.
+ */
+fun buildAirQuality(hourly: AirQualityHourly, nowIso: String): AirQualityNow {
+    val idx = hourly.time.indexOfFirst { it >= nowIso }.takeIf { it != -1 } ?: 0
+    val current = hourly.europeanAqi.getOrNull(idx)
+    val byHour = hourly.time.zip(hourly.europeanAqi)
+        .filter { it.second != null }
+        .associate { it.first to it.second!! }
+    return AirQualityNow(current, byHour)
+}
