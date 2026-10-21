@@ -215,12 +215,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon)
                     val nowStr = LocalDateTime.now()
                         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:00"))
-                    val idx = res.hourly.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
-                    val current = res.hourly.europeanAqi.getOrNull(idx)
-                    val hourlyMap = res.hourly.time.zip(res.hourly.europeanAqi)
-                        .filter { it.second != null }
-                        .associate { it.first to it.second!! }
-                    uiState = uiState.copy(currentAirQuality = current, aqiHourlyMap = hourlyMap)
+                    val aq = buildAirQuality(res.hourly, nowStr)
+                    uiState = uiState.copy(currentAirQuality = aq.current, aqiHourlyMap = aq.hourly)
                 }
             }
         }
