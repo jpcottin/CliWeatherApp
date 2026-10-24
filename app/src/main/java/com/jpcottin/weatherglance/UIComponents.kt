@@ -162,7 +162,8 @@ data class DailyForecastData(val isoDate: String, val code: Int, val minTemp: Do
 fun HourlyForecastRow(
     forecasts: List<HourlyForecastData>,
     prefs: WeatherPrefs,
-    aqiMap: Map<String, Int> = emptyMap()
+    aqiMap: Map<String, Int> = emptyMap(),
+    ctx: Context = LocalContext.current
 ) {
     LazyRow(modifier = Modifier.testTag("hourly_forecast_list"), contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(forecasts) { item ->
@@ -170,7 +171,7 @@ fun HourlyForecastRow(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(formatForecastHour(item.isoTime, prefs.appLanguage.locale, prefs.is24Hour), fontSize = 12.sp, color = Color.White)
                 Spacer(Modifier.height(4.dp))
-                Icon(getWeatherIcon(item.code, item.isDay), null, Modifier.size(32.dp), Color.White)
+                Icon(getWeatherIcon(item.code, item.isDay), getConditionString(ctx, item.code), Modifier.size(32.dp), Color.White)
                 Spacer(Modifier.height(4.dp))
                 Text("${formatTemperature(convertTemperature(item.temp, prefs.isCelsius), 0)}°", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 if (prefs.showUvIndex && item.uvIndex != null) {
@@ -189,14 +190,15 @@ fun HourlyForecastRow(
 @Composable
 fun DailyForecastRow(
     forecasts: List<DailyForecastData>,
-    prefs: WeatherPrefs
+    prefs: WeatherPrefs,
+    ctx: Context = LocalContext.current
 ) {
     LazyRow(contentPadding = PaddingValues(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         items(forecasts) { item ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(formatForecastDay(item.isoDate, prefs.appLanguage.locale), fontSize = 12.sp, color = Color.White)
                 Spacer(Modifier.height(4.dp))
-                Icon(getWeatherIcon(item.code, 1), null, Modifier.size(32.dp), Color.White)
+                Icon(getWeatherIcon(item.code, 1), getConditionString(ctx, item.code), Modifier.size(32.dp), Color.White)
                 Spacer(Modifier.height(4.dp))
                 Text("${formatTemperature(convertTemperature(item.minTemp, prefs.isCelsius), 0)}° / ${formatTemperature(convertTemperature(item.maxTemp, prefs.isCelsius), 0)}°", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 if (prefs.showUvIndex && item.uvIndexMax != null) {
@@ -240,8 +242,8 @@ fun VerticalLayout(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         SectionTimeWeather(ctx, state, prefs, compact = true)
-        if (state.hourlyForecasts.isNotEmpty()) HourlyForecastRow(state.hourlyForecasts, prefs, state.aqiHourlyMap)
-        if (state.dailyForecasts.isNotEmpty()) DailyForecastRow(state.dailyForecasts, prefs)
+        if (state.hourlyForecasts.isNotEmpty()) HourlyForecastRow(state.hourlyForecasts, prefs, state.aqiHourlyMap, ctx)
+        if (state.dailyForecasts.isNotEmpty()) DailyForecastRow(state.dailyForecasts, prefs, ctx)
         SectionControls(ctx, state, prefs, onRefresh, onSpeak, onRequestPermission)
         MiniWorldMap(ctx, state, onMapClick, Modifier.height(220.dp).fillMaxWidth().padding(horizontal = 16.dp))
     }
@@ -261,8 +263,8 @@ fun HorizontalLayout(
     Row(modifier = Modifier.fillMaxSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(0.4f).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             SectionTimeWeather(ctx, state, prefs)
-            if (state.hourlyForecasts.isNotEmpty()) HourlyForecastRow(state.hourlyForecasts, prefs, state.aqiHourlyMap)
-            if (state.dailyForecasts.isNotEmpty()) DailyForecastRow(state.dailyForecasts, prefs)
+            if (state.hourlyForecasts.isNotEmpty()) HourlyForecastRow(state.hourlyForecasts, prefs, state.aqiHourlyMap, ctx)
+            if (state.dailyForecasts.isNotEmpty()) DailyForecastRow(state.dailyForecasts, prefs, ctx)
         }
         Column(modifier = Modifier.weight(0.6f).fillMaxHeight().padding(start = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             MiniWorldMap(ctx, state, onMapClick, Modifier.weight(0.7f).fillMaxWidth())
@@ -271,9 +273,14 @@ fun HorizontalLayout(
                 Text(text = state.locationInfo.substringAfter("\n", ""), fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.testTag("location_coords"))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (prefs.useGps) {
-                        Button(onClick = onRefresh, enabled = !state.isRefreshing, modifier = Modifier.height(32.dp).testTag("btn_refresh")) {
-                            Icon(Icons.Rounded.Refresh, null, Modifier.size(16.dp).graphicsLayer { rotationZ = rotation }, tint = Color.White)
-                            Text(ctx.getString(R.string.refresh), fontSize = 12.sp)
+                        if (state.permissionGranted) {
+                            Button(onClick = onRefresh, enabled = !state.isRefreshing, modifier = Modifier.height(32.dp).testTag("btn_refresh")) {
+                                Icon(Icons.Rounded.Refresh, null, Modifier.size(16.dp).graphicsLayer { rotationZ = rotation }, tint = Color.White)
+                                Text(ctx.getString(R.string.refresh), fontSize = 12.sp)
+                            }
+                        } else {
+                            // The wide layout had no way to ask for the permission at all.
+                            Button(onClick = onRequestPermission, modifier = Modifier.height(32.dp)) { Text(ctx.getString(R.string.grant_permission), fontSize = 12.sp) }
                         }
                         Spacer(Modifier.width(8.dp))
                     }
@@ -398,27 +405,29 @@ fun SectionControls(
 ) {
     val rotation = rememberRefreshRotation(state.isRefreshing)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        if (!state.permissionGranted) {
-            Button(onClick = onRequestPermission) { Text(ctx.getString(R.string.grant_permission)) }
-        } else {
-            Text(ctx.getString(R.string.location_label), fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
-            Text(state.locationInfo.substringBefore("\n"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White, textAlign = TextAlign.Center, maxLines = 1)
-            Text(state.locationInfo.substringAfter("\n", ""), fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.testTag("location_coords"))
-            Spacer(Modifier.height(12.dp))
-            Row {
-                if (prefs.useGps) {
+        Text(ctx.getString(R.string.location_label), fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
+        Text(state.locationInfo.substringBefore("\n"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White, textAlign = TextAlign.Center, maxLines = 1)
+        Text(state.locationInfo.substringAfter("\n", ""), fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.testTag("location_coords"))
+        Spacer(Modifier.height(12.dp))
+        Row {
+            // Only GPS mode needs the location permission: Map mode keeps its
+            // saved coordinates, the location label and Speak whatever was answered.
+            if (prefs.useGps) {
+                if (state.permissionGranted) {
                     Button(onClick = onRefresh, enabled = !state.isRefreshing, modifier = Modifier.testTag("btn_refresh")) {
                         Icon(Icons.Rounded.Refresh, null, Modifier.size(18.dp).graphicsLayer { rotationZ = rotation }, tint = Color.White)
                         Spacer(Modifier.width(8.dp))
                         Text(ctx.getString(R.string.refresh))
                     }
-                    Spacer(Modifier.width(12.dp))
+                } else {
+                    Button(onClick = onRequestPermission) { Text(ctx.getString(R.string.grant_permission)) }
                 }
-                Button(onClick = onSpeak) {
-                    Icon(Icons.AutoMirrored.Rounded.VolumeUp, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(ctx.getString(R.string.speak))
-                }
+                Spacer(Modifier.width(12.dp))
+            }
+            Button(onClick = onSpeak) {
+                Icon(Icons.AutoMirrored.Rounded.VolumeUp, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(ctx.getString(R.string.speak))
             }
         }
     }

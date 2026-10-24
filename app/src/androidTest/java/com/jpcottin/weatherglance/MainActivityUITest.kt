@@ -261,6 +261,28 @@ class MainActivityUITest {
     }
 
     @Test
+    fun settingsDialogSurvivesActivityRecreation() {
+        waitForDataToLoad()
+        composeTestRule.onNodeWithContentDescription("Settings").safeClick()
+        composeTestRule.onNodeWithText("OK").assertExists()
+        scenario!!.recreate()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("OK").assertExists()   // the dialog is still open
+    }
+
+    @Test
+    fun actionBarIconsAreDescribedInTheAppLanguage() {
+        waitForDataToLoad()
+        composeTestRule.onNodeWithContentDescription("Settings").safeClick()
+        composeTestRule.onNodeWithTag("dropdown_lang").safeClick()
+        composeTestRule.onAllNodesWithText(AppLanguage.FR.label).onLast().safeClick()
+        composeTestRule.onNodeWithText("OK").safeClick()
+        waitForDataToLoad()
+        composeTestRule.onNodeWithContentDescription("Paramètres").assertExists()
+        composeTestRule.onNodeWithContentDescription("Partager").assertExists()
+    }
+
+    @Test
     fun testLayoutWorksInDifferentOrientations() {
         waitForDataToLoad()
         device.setOrientationLeft()
