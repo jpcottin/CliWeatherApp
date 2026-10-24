@@ -103,6 +103,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     // while a refresh runs) replaces it instead of racing it: the slower of two
     // responses used to win and move the marker back to the earlier choice.
     private var fetchJob: Job? = null
+    private var airQualityJob: Job? = null
 
     fun fetchWeather(
         useGps: Boolean = prefs.useGps,
@@ -110,6 +111,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         lon: Double = uiState.currentLon
     ) {
         fetchJob?.cancel()
+        airQualityJob?.cancel()
         uiState = uiState.copy(isRefreshing = true)
         fetchJob = viewModelScope.launch {
             repository.fetch(
@@ -221,7 +223,10 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun fetchAirQuality(lat: Double, lon: Double) {
-        viewModelScope.launch {
+        // Cancelled with the weather it belongs to, or a slower reply for the
+        // previous city lands on the badge of the next one.
+        airQualityJob?.cancel()
+        airQualityJob = viewModelScope.launch {
             runCatching {
                 withTimeoutOrNull(5000L) {
                     // Enough days for every hour of the strip, or the badges stop at midnight.

@@ -38,6 +38,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -185,7 +186,8 @@ fun WeatherScreen(
         Unit
     }
 
-    var showSettings by remember { mutableStateOf(false) }
+    // Survives rotation, a fold and a free-form resize: the dialog stays open mid-edit.
+    var showSettings by rememberSaveable { mutableStateOf(false) }
 
     val bgColors = remember(uiState.weatherCode, uiState.isDay) {
         getBackgroundColors(uiState.weatherCode, uiState.isDay)
@@ -207,7 +209,7 @@ fun WeatherScreen(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
             ) {
                 IconButton(onClick = shareAction) {
-                    Icon(Icons.Rounded.Share, contentDescription = "Share", tint = Color.White)
+                    Icon(Icons.Rounded.Share, contentDescription = localizedContext.getString(R.string.share), tint = Color.White)
                 }
                 if (uiState.isGlassesConnected) {
                     IconButton(
@@ -216,7 +218,7 @@ fun WeatherScreen(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_glasses),
-                            contentDescription = "Send to Glasses",
+                            contentDescription = localizedContext.getString(R.string.send_to_glasses),
                             tint = if (uiState.temperature != null) Color.White
                                    else Color.White.copy(alpha = 0.38f)
                         )
@@ -224,7 +226,7 @@ fun WeatherScreen(
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 IconButton(onClick = { showSettings = true }) {
-                    Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Color.White)
+                    Icon(Icons.Rounded.Settings, contentDescription = localizedContext.getString(R.string.settings), tint = Color.White)
                 }
             }
 

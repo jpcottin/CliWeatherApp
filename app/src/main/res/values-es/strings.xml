@@ -12,6 +12,7 @@
     <string name="locating">Localizando...</string>
     <string name="gps_error">Clima en GPS</string>
     <string name="settings">Ajustes</string>
+    <string name="send_to_glasses">Enviar a las gafas</string>
     <string name="unit">Unidad</string>
     <string name="language">Idioma</string>
     <string name="time_format">Formato de hora</string>
