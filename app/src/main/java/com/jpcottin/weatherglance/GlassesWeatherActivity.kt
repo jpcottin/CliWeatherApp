@@ -1,5 +1,6 @@
 package com.jpcottin.weatherglance
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -72,7 +73,9 @@ class GlassesWeatherActivity : ComponentActivity() {
             intent.getStringExtra(EXTRA_LANGUAGE_TAG) ?: Locale.ENGLISH.toLanguageTag()
         )
         val localizedCtx = run {
-            val config = resources.configuration
+            // A copy: setting the locale on the activity's own Configuration would change
+            // what LocalConfiguration reports as the device locale further down.
+            val config = Configuration(resources.configuration)
             config.setLocale(locale)
             createConfigurationContext(config)
         }
@@ -108,8 +111,9 @@ class GlassesWeatherActivity : ComponentActivity() {
                     forecastLabel = forecastLabel,
                     pageFormat = pageFormat,
                     onClose = {
-                        audioInterface.speak(goodbyeText)
-                        finish()
+                        // Finish once the farewell has been said: the engine is shut down
+                        // with the screen, which used to cut the word off.
+                        audioInterface.speakThen(goodbyeText) { finish() }
                     }
                 )
             }
