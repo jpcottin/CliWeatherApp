@@ -224,7 +224,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             runCatching {
                 withTimeoutOrNull(5000L) {
-                    val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon)
+                    // Enough days for every hour of the strip, or the badges stop at midnight.
+                    val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon, days = airQualityDaysNeeded(prefs.hourlyRange))
                     // The hours come back in the location's zone: match "now" in that zone,
                     // or a tapped city on the far side of the globe shows midnight's reading.
                     val aq = buildAirQuality(res.hourly, currentHourIso(res.timezone))

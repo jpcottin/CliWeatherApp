@@ -96,10 +96,42 @@ class ForecastSlicingTest {
 
     @Test
     fun daysNeededCoverBothRanges() {
-        assertEquals(1, forecastDaysNeeded(hourlyRange = 1, dailyRange = 0))
-        assertEquals(2, forecastDaysNeeded(hourlyRange = 30, dailyRange = 0))   // 30 h spill into a second day
+        assertEquals(2, forecastDaysNeeded(hourlyRange = 1, dailyRange = 0))    // the hour may be today's last
+        assertEquals(3, forecastDaysNeeded(hourlyRange = 30, dailyRange = 0))   // 30 h from late today spill into a third day
         assertEquals(4, forecastDaysNeeded(hourlyRange = 12, dailyRange = 3))   // today + 3 more days
-        assertEquals(3, forecastDaysNeeded(hourlyRange = 72, dailyRange = 1))
+        assertEquals(4, forecastDaysNeeded(hourlyRange = 72, dailyRange = 1))
+        assertEquals(8, forecastDaysNeeded(hourlyRange = 168, dailyRange = 6))  // the full week from any hour
+    }
+
+    @Test
+    fun aFullHourlyRangeLateInTheDayStillFillsTheStrip() {
+        val f = buildForecasts(response(currentTime = "2026-04-20T20:00", hourly = Hourly(
+            time = hours(24) + List(24) { i -> "2026-04-21T${i.toString().padStart(2, '0')}:00" },
+            temperature = List(48) { it.toDouble() }, weatherCode = List(48) { 1 }, isDay = List(48) { 1 }, uvIndex = null,
+        )), hourlyRange = 24, dailyRange = 1)
+        assertEquals(24, f.hourly.size)
+        assertEquals("2026-04-20T20:00", f.hourly.first().isoTime)
+    }
+
+    @Test
+    fun aShortOrHoleyTemperatureArrayCostsOnlyThoseRows() {
+        val f = buildForecasts(response(currentTime = "2026-04-20T00:00", hourly = Hourly(
+            time = hours(4), temperature = listOf(1.0, 2.0), weatherCode = List(4) { 1 }, isDay = null, uvIndex = null,
+        ), daily = Daily(
+            time = listOf("2026-04-20", "2026-04-21", "2026-04-22"), weatherCode = listOf(0, 1, 2),
+            maxTemperature = listOf(20.0, 21.0), minTemperature = listOf(10.0, 11.0, 12.0),
+            sunrise = listOf("2026-04-20T06:00"), sunset = listOf("2026-04-20T20:00"), uvIndexMax = null,
+        )), hourlyRange = 4, dailyRange = 2)
+        assertEquals(2, f.hourly.size)
+        assertEquals(1, f.daily.size)                              // the 22nd has no max temperature
+        assertEquals("", f.daily.first().sunrise)                  // no sunrise row: blank, not a crash
+    }
+
+    @Test
+    fun airQualityDaysCoverTheHourlyStrip() {
+        assertEquals(1, airQualityDaysNeeded(0))
+        assertEquals(2, airQualityDaysNeeded(8))
+        assertEquals(7, airQualityDaysNeeded(168))
     }
 
     @Test
