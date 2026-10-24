@@ -135,6 +135,11 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                         currentUvIndex = uvIdx,
                         isRefreshing = false
                     )
+                },
+                onError = { message ->
+                    // The last good location and weather stay; only the label says what went
+                    // wrong, and nothing is persisted or fetched for a place nobody chose.
+                    uiState = uiState.copy(locationInfo = message, isRefreshing = false)
                 }
             )
         }
