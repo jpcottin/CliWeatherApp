@@ -101,4 +101,18 @@ class ForecastSlicingTest {
         assertEquals(4, forecastDaysNeeded(hourlyRange = 12, dailyRange = 3))   // today + 3 more days
         assertEquals(3, forecastDaysNeeded(hourlyRange = 72, dailyRange = 1))
     }
+
+    @Test
+    fun daysNeededNeverExceedWhatTheApiServes() {
+        assertEquals(16, forecastDaysNeeded(hourlyRange = 1, dailyRange = MAX_DAILY_RANGE))  // the slider's top
+        assertEquals(16, forecastDaysNeeded(hourlyRange = 1, dailyRange = 40))               // a stale larger preference
+        assertEquals(16, forecastDaysNeeded(hourlyRange = 24 * 30, dailyRange = 0))
+    }
+
+    @Test
+    fun aCurrentTimeInsideTheHourStartsAtThatHour() {
+        val f = buildForecasts(response(currentTime = "2026-04-20T10:15"), hourlyRange = 3, dailyRange = 1)
+        assertEquals(listOf("2026-04-20T10:00", "2026-04-20T11:00", "2026-04-20T12:00"), f.hourly.map { it.isoTime })
+        assertEquals(1.0, f.currentUvIndex!!, 1e-9)
+    }
 }

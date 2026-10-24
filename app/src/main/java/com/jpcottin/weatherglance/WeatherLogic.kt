@@ -122,13 +122,22 @@ data class Forecasts(
     val currentUvIndex: Double?,
 )
 
-/** Days to request so that [hourlyRange] hours from now and [dailyRange] days after today are covered. */
+/** The most forecast days Open-Meteo serves in one request, today included. */
+const val MAX_FORECAST_DAYS = 16
+
+/** The most daily rows the settings slider offers: every day after today within [MAX_FORECAST_DAYS]. */
+const val MAX_DAILY_RANGE = MAX_FORECAST_DAYS - 1
+
+/**
+ * Days to request so that [hourlyRange] hours from now and [dailyRange] days after today are
+ * covered, capped at [MAX_FORECAST_DAYS]: the API rejects anything above it outright.
+ */
 fun forecastDaysNeeded(hourlyRange: Int, dailyRange: Int): Int =
-    maxOf(1, (hourlyRange + 23) / 24, dailyRange + 1)
+    maxOf(1, (hourlyRange + 23) / 24, dailyRange + 1).coerceAtMost(MAX_FORECAST_DAYS)
 
 /**
  * Slices [res] into [hourlyRange] hourly rows starting at the current hour (the first hourly
- * slot at or after `current_weather.time`, or the first slot when none matches) and
+ * slot whose hour is at or after `current_weather.time`'s, or the first slot when none matches) and
  * [dailyRange] daily rows starting tomorrow. Missing per-hour day flags default to day, a
  * missing per-hour weather code falls back to the current one, and a missing daily code to 0.
  */
@@ -136,8 +145,10 @@ fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): For
     val hourlyList = mutableListOf<HourlyForecastData>()
     var uvIndex: Double? = null
     res.hourly?.let { h ->
-        val nowStr = res.current_weather.time
-        val startIndex = h.time.indexOfFirst { it >= nowStr }.takeIf { it != -1 } ?: 0
+        // current_weather.time carries minutes ("…T10:15"); match on the hour so the strip starts
+        // with the hour we are in rather than the next one.
+        val nowHour = res.current_weather.time.take(13)
+        val startIndex = h.time.indexOfFirst { it.take(13) >= nowHour }.takeIf { it != -1 } ?: 0
         uvIndex = h.uvIndex?.getOrNull(startIndex)
         for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
             hourlyList.add(

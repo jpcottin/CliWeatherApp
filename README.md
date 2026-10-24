@@ -44,7 +44,7 @@ CliWeatherApp is a robust, modern Android weather application built with Jetpack
 *   **Comprehensive Weather Data**: Instant access to current temperature, weather conditions, and icons.
 *   **Detailed Forecasts**:
     *   **Customizable Hourly Forecast**: Display from **0 to 168 hours** of upcoming temperature, condition, UV index, and AQI data.
-    *   **Customizable Daily Forecast**: View from **0 to 16 days** of daily high/low ranges, UV index max, and sunrise/sunset times.
+    *   **Customizable Daily Forecast**: View from **0 to 15 days** of daily high/low ranges, UV index max, and sunrise/sunset times.
 *   **Dual-Mode Location Support**:
     *   **Interactive World Map**: Tap anywhere on the high-precision map to fetch weather for that specific coordinate.
     *   **Real-time GPS**: Automatic tracking of your device's movement. Fully compatible with `adb emu geo fix` for emulator testing.
@@ -64,7 +64,7 @@ Tailor the app to your preferences with a comprehensive settings suite:
     *   Español (Spanish)
     *   Deutsch (German)
     *   日本語 (Japanese)
-*   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-16d) forecast rows using intuitive sliders.
+*   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-15d) forecast rows using intuitive sliders.
 *   **Sunrise & Sunset**: Toggle the display of sunrise and sunset times on daily forecast cards (on by default).
 *   **UV Index**: Toggle UV index display (off by default). When on: shows a colour-coded badge next to the clock, per-hour UV values in the hourly forecast, and daily UV max in the daily forecast. Announced by TTS in all 5 languages.
 *   **Air Quality (AQI)**: Toggle European AQI display (off by default). When on: shows a colour-coded badge next to the clock and per-hour AQI values in the hourly forecast (today only). Uses the Open-Meteo Air Quality API — no API key required.
