@@ -124,7 +124,9 @@ interface WeatherRepository {
         hourlyRange: Int,
         dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit,
+        /** Nothing could be fetched: the message to show; location and weather stay as they were. */
+        onError: (String) -> Unit = {}
     )
 }
 
@@ -139,8 +141,9 @@ class RetrofitWeatherRepository : WeatherRepository {
         hourlyRange: Int,
         dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
-    ) = fetchLocationAndWeather(context, useGps, lat, lon, lang, is24Hour, hourlyRange, dailyRange, onLoc, onWeather)
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit,
+        onError: (String) -> Unit
+    ) = fetchLocationAndWeather(context, useGps, lat, lon, lang, is24Hour, hourlyRange, dailyRange, onLoc, onWeather, onError)
 
     @SuppressLint("MissingPermission")
     private suspend fun fetchLocationAndWeather(
@@ -153,7 +156,8 @@ class RetrofitWeatherRepository : WeatherRepository {
         hourlyRange: Int,
         dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit,
+        onError: (String) -> Unit
     ) {
         try {
             var finalLat = lat ?: 0.0
@@ -192,9 +196,9 @@ class RetrofitWeatherRepository : WeatherRepository {
                     finalLat = location.latitude
                     finalLon = location.longitude
                 } else {
-                    val err = getLocalizedContext(context, lang).getString(R.string.gps_error)
-                    onLoc(err, "Error", 0.0, 0.0)
-                    onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList(), null)
+                    // No fix: say so, and leave the last location and weather alone rather
+                    // than moving the marker to (0, 0) and showing 0.0° as if it were data.
+                    onError(getLocalizedContext(context, lang).getString(R.string.gps_error))
                     return
                 }
             }
@@ -232,7 +236,7 @@ class RetrofitWeatherRepository : WeatherRepository {
             val res = withTimeoutOrNull(5000L) {
                 RetrofitClient.api.getWeather(finalLat, finalLon, days = neededDays)
             } ?: run {
-                onWeather(0, 0.0, "UTC", 1, emptyList(), emptyList(), null)
+                onError("Error: timeout")
                 return
             }
 
@@ -251,8 +255,7 @@ class RetrofitWeatherRepository : WeatherRepository {
             // A newer fetch replaced this one: not an error, nothing to report.
             throw e
         } catch (e: Exception) {
-            onLoc("Error: ${e.message}", "Error", 0.0, 0.0)
-            onWeather(0, -999.0, "UTC", 1, emptyList(), emptyList(), null)
+            onError("Error: ${e.message}")
         }
     }
 }
@@ -268,7 +271,8 @@ class MockWeatherRepository : WeatherRepository {
         hourlyRange: Int,
         dailyRange: Int,
         onLoc: (String, String, Double, Double) -> Unit,
-        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit
+        onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit,
+        onError: (String) -> Unit
     ) {
         onLoc("Mock City, Test\n(45.00, 90.00)", "Mock City", 45.0, 90.0)
         val h = List(hourlyRange) {
