@@ -2,6 +2,9 @@ package com.jpcottin.weatherglance
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
+import android.os.Looper
+import android.os.Handler
 import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -30,6 +33,30 @@ class AudioInterface(
         if (::tts.isInitialized) tts.speak(text, TextToSpeech.QUEUE_ADD, null, text.take(32))
     }
 
+    /**
+     * Says [text] right away, dropping whatever was queued, and runs [onDone] on the main
+     * thread once it has been spoken (or at once if there is no engine, or after a short
+     * timeout should the engine never report back). For a farewell before the screen goes:
+     * finishing first would shut the engine down mid-sentence.
+     */
+    fun speakThen(text: String, onDone: () -> Unit) {
+        if (!::tts.isInitialized) { onDone(); return }
+        val handler = Handler(Looper.getMainLooper())
+        var done = false
+        val finish = Runnable { if (!done) { done = true; onDone() } }
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) = Unit
+            override fun onDone(utteranceId: String?) { if (utteranceId == FAREWELL_ID) handler.post(finish) }
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) { if (utteranceId == FAREWELL_ID) handler.post(finish) }
+        })
+        if (tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, FAREWELL_ID) != TextToSpeech.SUCCESS) {
+            finish.run()
+            return
+        }
+        handler.postDelayed(finish, FAREWELL_TIMEOUT_MS)
+    }
+
     override fun onStop(owner: LifecycleOwner) {
         super.onStop(owner)
         tts.shutdown()
@@ -37,5 +64,7 @@ class AudioInterface(
 
     companion object {
         private const val TAG = "AudioInterface"
+        private const val FAREWELL_ID = "farewell"
+        private const val FAREWELL_TIMEOUT_MS = 3000L
     }
 }
