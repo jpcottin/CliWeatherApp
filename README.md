@@ -47,7 +47,7 @@ CliWeatherApp is a robust, modern Android weather application built with Jetpack
     *   **Customizable Daily Forecast**: View from **0 to 15 days** of daily high/low ranges, UV index max, and sunrise/sunset times.
 *   **Dual-Mode Location Support**:
     *   **Interactive World Map**: Tap anywhere on the high-precision map to fetch weather for that specific coordinate.
-    *   **Real-time GPS**: Automatic tracking of your device's movement. Fully compatible with `adb emu geo fix` for emulator testing.
+    *   **GPS**: Fetches the weather for the device's current position on every refresh. Fully compatible with `adb emu geo fix` for emulator testing.
 *   **Text-to-Speech (TTS)**: Listen to your weather report in your preferred language.
 *   **Social Sharing**: Capture a snapshot of your current weather and share it instantly with friends.
 *   **Multi-Device Optimized**: Native support for Phone, Tablet, and Foldable layouts using `WindowSizeClass`. On phones, the header uses a compact side-by-side layout (time + badges on the left, weather icon and temperature on the right) to maximise vertical space for forecasts.
@@ -68,7 +68,7 @@ Tailor the app to your preferences with a comprehensive settings suite:
 *   **Sunrise & Sunset**: Toggle the display of sunrise and sunset times on daily forecast cards (on by default).
 *   **UV Index**: Toggle UV index display (off by default). When on: shows a colour-coded badge next to the clock, per-hour UV values in the hourly forecast, and daily UV max in the daily forecast. Announced by TTS in all 5 languages.
 *   **Air Quality (AQI)**: Toggle European AQI display (off by default). When on: shows a colour-coded badge next to the clock and per-hour AQI values in the hourly forecast (today only). Uses the Open-Meteo Air Quality API — no API key required.
-*   **Location Mode**: Switch between **Map Mode** (fixed point) and **GPS Mode** (continuous tracking).
+*   **Location Mode**: Switch between **Map Mode** (a fixed point) and **GPS Mode** (the device's position at each refresh).
 
 ## 🔒 Permissions
 
@@ -103,14 +103,14 @@ A Glimmer-themed projected screen shows:
 - **Main card**: large weather icon, current temperature (bold, 32 sp), condition subtitle, city name, and a Close button
 - **Hourly forecast row**: paginated views (up to 4 pages) each showing 7 hours of data, with per-item icons and temperatures
 
-On open the glasses speak the current weather via TTS; tapping anywhere (or the Close button) speaks "Goodbye!" and dismisses the screen.
+On open the glasses speak the current weather via TTS; the Close button speaks "Goodbye!" and dismisses the screen.
 
 ### Technical details
 
 | Concern | Detail |
 |---|---|
-| Projected activity | `GlassesWeatherActivity` — `android:requiredDisplayCategory="display_category_xr_projected"` routes it to the glasses display |
-| Connection detection | `ProjectedContext.isProjectedDeviceConnected()` (API 36+); guarded with a `Build.VERSION_CODES` check so the button simply stays hidden on older SDKs |
+| Projected activity | `GlassesWeatherActivity` — `android:requiredDisplayCategory="@string/display_category_xr_projected"` (`xr_projected`) routes it to the glasses display |
+| Connection detection | `ProjectedContext.isProjectedDeviceConnected()` (API 36+); guarded with a `Build.VERSION.SDK_INT >= 36` check so the button simply stays hidden on older SDKs |
 | UI toolkit | Jetpack Compose **Glimmer** (`androidx.xr.glimmer`) — the XR-optimised design system |
 | TTS | `AudioInterface`, a `DefaultLifecycleObserver` wrapping Android `TextToSpeech`; speaks on `onStart`, shuts down on `onStop`. The locale (BCP-47 tag) is passed via `EXTRA_LANGUAGE_TAG` so the TTS voice matches the phone app's language setting |
 | Data transport | Intent extras (`intArrayExtra`, `doubleArrayExtra`, `getStringArrayListExtra`) — no IPC, same process |
@@ -141,18 +141,18 @@ Built using the latest Android development standards:
 
 Quality is guaranteed through a multi-layered testing approach:
 
-*   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and API response parsing. `GlassesWeatherTest` covers intent extra key constants (including `EXTRA_LANGUAGE_TAG`), `HourlyItem` construction from parallel arrays, edge cases (empty arrays, mismatched list lengths), temperature display, hourly time formatting (12h/24h, midnight edge cases), BCP-47 language-tag round-trips for the TTS locale fallback logic, and the lens forecast pager (`glassesForecastPages` / `glassesForecastOffset`). `ForecastSlicingTest` covers how one Open-Meteo response becomes the hourly strip and the daily row (`buildForecasts`, `forecastDaysNeeded`): start hour, ranges, data caps and the fallbacks for missing fields. `AirQualityTest` covers how the air-quality hours become the current reading and the hourly map (`buildAirQuality`): the hour matching now, a response that starts later or is entirely stale, and missing values.
+*   **Unit Tests (`test`)**: Rigorous testing of business logic, including temperature conversion, time zone formatting, and the slicing of API responses into what the screen shows. `GlassesWeatherTest` covers intent extra key constants (including `EXTRA_LANGUAGE_TAG`), `HourlyItem` construction from parallel arrays, edge cases (empty arrays, mismatched list lengths), temperature display, hourly time formatting (12h/24h, midnight edge cases), BCP-47 language-tag round-trips for the TTS locale fallback logic, and the lens forecast pager (`glassesForecastPages` / `glassesForecastOffset`). `ForecastSlicingTest` covers how one Open-Meteo response becomes the hourly strip and the daily row (`buildForecasts`, `forecastDaysNeeded`): start hour, ranges, data caps and the fallbacks for missing fields. `AirQualityTest` covers how the air-quality hours become the current reading and the hourly map (`buildAirQuality`): the hour matching now, a response that starts later or is entirely stale, and missing values.
 *   **Compose UI Tests (`androidTest`)**: Verified interactions with buttons, switches, and maps using the `compose-ui-test` framework. Includes tests asserting the glasses button is absent when no XR device is connected (emulator default).
 *   **UI Automator**: Specialized tests for handling system-level dialogs (permissions) and hardware-level changes (device orientation).
 *   **Compose Preview Screenshot Tests (`screenshotTest`)**: Golden-image regression tests via the `com.android.compose.screenshot` plugin. They render the real layouts at **Phone, Foldable, and Tablet** sizes (plus the hourly/daily forecast rows and the settings dialog) and compare against committed reference PNGs. The clock is frozen to a fixed instant under preview rendering (`LocalInspectionMode`) so the goldens stay deterministic.
-*   **State Persistence**: Tests ensure that your settings (language, units, location) are perfectly preserved across app restarts using `SharedPreferences`.
+*   **State Persistence**: Settings (language, units, location, forecast ranges) live in `SharedPreferences`; the Compose UI tests save and restore them around each run so one test's choices never leak into the next.
 
 ## 🔄 Continuous Integration
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request to `main`:
 
 *   **`build` job**: lint (`lintDebug`) → unit tests (`testDebugUnitTest`) → screenshot validation (`validateDebugScreenshotTest`) → debug APK assembly (`assembleDebug`).
-*   **`instrumented-tests` job**: runs `connectedDebugAndroidTest` on the emulator. Because the app targets **API 37**, instrumented coverage runs on a gating **API 36** leg (`google_apis`, `auto`) and a gating **API 37.0** leg (`google_apis_ps16k`, x86_64, `lavapipe`), plus non-blocking canary legs on API 37.0, 37.1 and 37.2 with the `lavapipe` and `auto` GPU backends. The `MainActivityAPI37Test` exercises the API 37+ code paths on the API 37 legs.
+*   **`instrumented-tests` job**: runs `connectedDebugAndroidTest` on the emulator. Because the app targets **API 37**, instrumented coverage runs on a gating **API 36** leg (`google_apis`, `auto`) and a gating **API 37.0** leg (`google_apis_ps16k`, x86_64, `lavapipe`), plus non-blocking canary legs on API 37.0, 37.1 and 37.2 with the `lavapipe` and `auto` GPU backends. The Compose UI tests in `MainActivityUITest` assume an API below 37 and skip themselves on the API 37 legs, where the `MainActivityAPI37Test` (the API 37+ code paths) and the GPS test run.
 
 ## 🗺️ Assets & Attributions
 
