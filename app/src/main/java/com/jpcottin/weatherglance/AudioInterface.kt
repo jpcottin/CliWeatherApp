@@ -10,19 +10,29 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import java.util.Locale
 
+/** How a [TextToSpeech] engine is created; the default is the platform constructor. */
+typealias TtsEngineFactory = (Context, TextToSpeech.OnInitListener) -> TextToSpeech
+
 class AudioInterface(
     private val context: Context,
     private val initializationMessage: String,
-    private val locale: Locale = Locale.ENGLISH
+    private val locale: Locale = Locale.ENGLISH,
+    private val engineFactory: TtsEngineFactory = { ctx, listener -> TextToSpeech(ctx, listener) },
 ) : DefaultLifecycleObserver {
     private lateinit var tts: TextToSpeech
+    // The weather is read out when the screen first appears, not on every return to it:
+    // a second instance stacked on the lens, or a system overlay, stops and restarts this one.
+    private var introduced = false
 
     override fun onStart(owner: LifecycleOwner) {
         super.onStart(owner)
-        tts = TextToSpeech(context) { status ->
+        tts = engineFactory(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts.language = locale
-                speak(initializationMessage)
+                if (!introduced) {
+                    introduced = true
+                    speak(initializationMessage)
+                }
             } else {
                 Log.e(TAG, "TTS initialization failed with status: $status")
             }
