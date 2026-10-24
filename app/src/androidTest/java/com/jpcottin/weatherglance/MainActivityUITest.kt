@@ -51,7 +51,7 @@ class MainActivityUITest {
     fun setUp() {
         // TODO: Espresso 3.6.1 uses InputManager.getInstance() via reflection, which is fully
         //  blocked on Android API 37 (Android 16 Preview). Re-enable once Espresso ships a fix.
-        //  CI runs on API 35 where these tests pass normally.
+        //  CI runs on API 36 where these tests pass normally.
         Assume.assumeTrue(
             "Skipped on API 37+: Espresso incompatible with InputManager restrictions",
             Build.VERSION.SDK_INT < 37
