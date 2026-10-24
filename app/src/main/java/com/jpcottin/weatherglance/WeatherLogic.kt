@@ -135,7 +135,15 @@ const val MAX_DAILY_RANGE = MAX_FORECAST_DAYS - 1
  * covered, capped at [MAX_FORECAST_DAYS]: the API rejects anything above it outright.
  */
 fun forecastDaysNeeded(hourlyRange: Int, dailyRange: Int): Int =
-    maxOf(1, (hourlyRange + 23) / 24, dailyRange + 1).coerceAtMost(MAX_FORECAST_DAYS)
+    // The hourly rows start at the current hour, not at midnight: the part of today already
+    // gone has to be covered by one more day (the local hour is unknown before the response).
+    maxOf(1, (hourlyRange + 23) / 24 + 1, dailyRange + 1).coerceAtMost(MAX_FORECAST_DAYS)
+
+/** The most days the air-quality endpoint serves in one request. */
+const val MAX_AIR_QUALITY_DAYS = 7
+
+/** Days of air quality so that every hour of the hourly strip has a reading, within what is served. */
+fun airQualityDaysNeeded(hourlyRange: Int): Int = ((hourlyRange + 23) / 24 + 1).coerceIn(1, MAX_AIR_QUALITY_DAYS)
 
 /**
  * Slices [res] into [hourlyRange] hourly rows starting at the current hour (the first hourly
@@ -153,12 +161,15 @@ fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): For
         val startIndex = h.time.indexOfFirst { it.take(13) >= nowHour }.takeIf { it != -1 } ?: 0
         uvIndex = h.uvIndex?.getOrNull(startIndex)
         for (i in startIndex until minOf(startIndex + hourlyRange, h.time.size)) {
+            // A temperature array shorter than the times, or a null inside it, costs the
+            // affected hour, not the whole response.
+            val temp = h.temperature.getOrNull(i) ?: continue
             hourlyList.add(
                 HourlyForecastData(
                     h.time[i],
                     h.weatherCode.getOrNull(i) ?: res.current_weather.weatherCode,
                     h.isDay?.getOrNull(i) ?: 1,
-                    h.temperature[i],
+                    temp,
                     uvIndex = h.uvIndex?.getOrNull(i)
                 )
             )
@@ -168,14 +179,16 @@ fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): For
     val dailyList = mutableListOf<DailyForecastData>()
     res.daily?.let { d ->
         for (i in 1 until minOf(1 + dailyRange, d.time.size)) {
+            val lo = d.minTemperature.getOrNull(i) ?: continue
+            val hi = d.maxTemperature.getOrNull(i) ?: continue
             dailyList.add(
                 DailyForecastData(
                     d.time[i],
                     d.weatherCode.getOrNull(i) ?: 0,
-                    d.minTemperature[i],
-                    d.maxTemperature[i],
-                    d.sunrise[i],
-                    d.sunset[i],
+                    lo,
+                    hi,
+                    d.sunrise.getOrNull(i) ?: "",
+                    d.sunset.getOrNull(i) ?: "",
                     uvIndexMax = d.uvIndexMax?.getOrNull(i)
                 )
             )

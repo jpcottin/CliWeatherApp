@@ -24,8 +24,8 @@ class PreferenceManager(context: Context) {
         .putString("last_lon", lon.toString())
         .apply()
 
-    fun getLatitude() = coordinateOrDefault(storedString("last_lat"), 37.422)
-    fun getLongitude() = coordinateOrDefault(storedString("last_lon"), -122.084)
+    fun getLatitude() = coordinateOrDefault(storedString("last_lat"), 37.422, limit = 90.0)
+    fun getLongitude() = coordinateOrDefault(storedString("last_lon"), -122.084, limit = 180.0)
 
     /** The stored string, or null when the key is missing or holds another type. */
     private fun storedString(key: String): String? =
@@ -50,6 +50,6 @@ class PreferenceManager(context: Context) {
     fun getShowAirQuality() = prefs.getBoolean("show_air_quality", false)
 }
 
-/** A saved coordinate parsed back, or [default] when nothing usable was saved. */
-internal fun coordinateOrDefault(raw: String?, default: Double): Double =
-    raw?.toDoubleOrNull()?.takeIf { it.isFinite() } ?: default
+/** A saved coordinate parsed back, or [default] when nothing usable (finite, within ±[limit]) was saved. */
+internal fun coordinateOrDefault(raw: String?, default: Double, limit: Double = 180.0): Double =
+    raw?.toDoubleOrNull()?.takeIf { it.isFinite() && kotlin.math.abs(it) <= limit } ?: default
