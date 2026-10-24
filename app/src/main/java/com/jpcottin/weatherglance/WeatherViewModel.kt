@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.xr.projected.ProjectedContext
 import androidx.xr.projected.experimental.ExperimentalProjectedApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -98,13 +99,19 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
         fetchWeather()
     }
 
+    // The fetch in flight, so a newer request (a second map tap, a language change
+    // while a refresh runs) replaces it instead of racing it: the slower of two
+    // responses used to win and move the marker back to the earlier choice.
+    private var fetchJob: Job? = null
+
     fun fetchWeather(
         useGps: Boolean = prefs.useGps,
         lat: Double = uiState.currentLat,
         lon: Double = uiState.currentLon
     ) {
+        fetchJob?.cancel()
         uiState = uiState.copy(isRefreshing = true)
-        viewModelScope.launch {
+        fetchJob = viewModelScope.launch {
             repository.fetch(
                 context = getApplication(),
                 useGps = useGps,
