@@ -56,6 +56,21 @@ fun getConditionString(context: Context, code: Int): String {
 
 fun convertTemperature(temp: Double, toCelsius: Boolean) = if (toCelsius) temp else (temp * 9 / 5) + 32
 
+/**
+ * [value] rounded half-up to [decimals] places as a number, so that formatting it cannot
+ * print a negative zero: Java's formatter keeps the sign of a value that rounds to zero
+ * ("-0.0°F" for -17.8 °C, "-0°" for -0.4). BigDecimal has no negative zero.
+ */
+fun roundTemperature(value: Double, decimals: Int): Double =
+    java.math.BigDecimal.valueOf(value).setScale(decimals, java.math.RoundingMode.HALF_UP).toDouble()
+
+/** [value] formatted with [decimals] places in the default locale, never as a negative zero. */
+fun formatTemperature(value: Double, decimals: Int): String =
+    String.format("%.${decimals}f", roundTemperature(value, decimals))
+
+/** The UV index as the whole number the badges show; the colour bands are applied to it. */
+fun uvLevel(uv: Double): Int = roundTemperature(uv, 0).toInt()
+
 fun formatTime(d: Date, tz: String?, l: Locale, is24h: Boolean): String {
     val pattern = if (is24h) "HH:mm:ss" else "hh:mm:ss a"
     val sdf = java.text.SimpleDateFormat(pattern, l)

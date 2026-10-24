@@ -172,10 +172,10 @@ fun HourlyForecastRow(
                 Spacer(Modifier.height(4.dp))
                 Icon(getWeatherIcon(item.code, item.isDay), null, Modifier.size(32.dp), Color.White)
                 Spacer(Modifier.height(4.dp))
-                Text("${String.format("%.0f", convertTemperature(item.temp, prefs.isCelsius))}°", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("${formatTemperature(convertTemperature(item.temp, prefs.isCelsius), 0)}°", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 if (prefs.showUvIndex && item.uvIndex != null) {
                     Spacer(Modifier.height(3.dp))
-                    SmallBadge("UV", String.format("%.0f", item.uvIndex), uvColor(item.uvIndex))
+                    SmallBadge("UV", uvLevel(item.uvIndex).toString(), uvColor(item.uvIndex))
                 }
                 if (aqi != null) {
                     Spacer(Modifier.height(3.dp))
@@ -198,10 +198,10 @@ fun DailyForecastRow(
                 Spacer(Modifier.height(4.dp))
                 Icon(getWeatherIcon(item.code, 1), null, Modifier.size(32.dp), Color.White)
                 Spacer(Modifier.height(4.dp))
-                Text("${String.format("%.0f", convertTemperature(item.minTemp, prefs.isCelsius))}° / ${String.format("%.0f", convertTemperature(item.maxTemp, prefs.isCelsius))}°", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("${formatTemperature(convertTemperature(item.minTemp, prefs.isCelsius), 0)}° / ${formatTemperature(convertTemperature(item.maxTemp, prefs.isCelsius), 0)}°", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 if (prefs.showUvIndex && item.uvIndexMax != null) {
                     Spacer(Modifier.height(4.dp))
-                    SmallBadge("UV", String.format("%.0f", item.uvIndexMax), uvColor(item.uvIndexMax))
+                    SmallBadge("UV", uvLevel(item.uvIndexMax).toString(), uvColor(item.uvIndexMax))
                 }
                 if (prefs.showSunriseSunset) {
                     Spacer(Modifier.height(4.dp))
@@ -342,7 +342,7 @@ fun SectionTimeWeather(ctx: Context, state: WeatherUiState, prefs: WeatherPrefs,
                 if (hasBadges) {
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        if (prefs.showUvIndex && state.currentUvIndex != null) InfoBadge("UV", state.currentUvIndex.toInt().toString(), uvColor(state.currentUvIndex))
+                        if (prefs.showUvIndex && state.currentUvIndex != null) InfoBadge("UV", uvLevel(state.currentUvIndex).toString(), uvColor(state.currentUvIndex))
                         if (prefs.showAirQuality && state.currentAirQuality != null) InfoBadge("AQI", state.currentAirQuality.toString(), aqiColor(state.currentAirQuality))
                     }
                 }
@@ -352,7 +352,7 @@ fun SectionTimeWeather(ctx: Context, state: WeatherUiState, prefs: WeatherPrefs,
                 Box(modifier = Modifier.testTag("current_temp"), contentAlignment = Alignment.Center) {
                     if (state.temperature != null) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("${String.format("%.1f", convertTemperature(state.temperature, prefs.isCelsius))}${if (prefs.isCelsius) "°C" else "°F"}", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("${formatTemperature(convertTemperature(state.temperature, prefs.isCelsius), 1)}${if (prefs.isCelsius) "°C" else "°F"}", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
                             Text(getConditionString(ctx, state.weatherCode), fontSize = 14.sp, color = Color.White.copy(alpha = 0.9f))
                         }
                     } else {
@@ -367,7 +367,7 @@ fun SectionTimeWeather(ctx: Context, state: WeatherUiState, prefs: WeatherPrefs,
             if (hasBadges) {
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (prefs.showUvIndex && state.currentUvIndex != null) InfoBadge("UV", state.currentUvIndex.toInt().toString(), uvColor(state.currentUvIndex))
+                    if (prefs.showUvIndex && state.currentUvIndex != null) InfoBadge("UV", uvLevel(state.currentUvIndex).toString(), uvColor(state.currentUvIndex))
                     if (prefs.showAirQuality && state.currentAirQuality != null) InfoBadge("AQI", state.currentAirQuality.toString(), aqiColor(state.currentAirQuality))
                 }
             }
@@ -376,7 +376,7 @@ fun SectionTimeWeather(ctx: Context, state: WeatherUiState, prefs: WeatherPrefs,
             Box(modifier = Modifier.testTag("current_temp"), contentAlignment = Alignment.Center) {
                 if (state.temperature != null) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("${String.format("%.1f", convertTemperature(state.temperature, prefs.isCelsius))}${if (prefs.isCelsius) "°C" else "°F"}", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("${formatTemperature(convertTemperature(state.temperature, prefs.isCelsius), 1)}${if (prefs.isCelsius) "°C" else "°F"}", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         Text(getConditionString(ctx, state.weatherCode), fontSize = 20.sp, color = Color.White.copy(alpha = 0.9f))
                     }
                 } else {
@@ -451,12 +451,13 @@ fun MiniWorldMap(ctx: Context, state: WeatherUiState, onMapClick: (Double, Doubl
     }
 }
 
-internal fun uvColor(uv: Double) = when {
-    uv < 3  -> Color(0xFF66BB6A)
-    uv < 6  -> Color(0xFFFDD835)
-    uv < 8  -> Color(0xFFFFA726)
-    uv < 11 -> Color(0xFFEF5350)
-    else    -> Color(0xFFAB47BC)
+// The WHO bands, applied to the whole number the badge shows (7.6 is shown as 8 and is red).
+internal fun uvColor(uv: Double) = when (uvLevel(uv)) {
+    in Int.MIN_VALUE..2 -> Color(0xFF66BB6A)
+    in 3..5  -> Color(0xFFFDD835)
+    in 6..7  -> Color(0xFFFFA726)
+    in 8..10 -> Color(0xFFEF5350)
+    else     -> Color(0xFFAB47BC)
 }
 
 internal fun aqiColor(aqi: Int) = when {

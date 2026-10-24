@@ -150,6 +150,14 @@ class GlassesWeatherTest {
     }
 
     @Test
+    fun temperatureDisplay_neverShowsANegativeZero() {
+        assertEquals("0.0", formatTemperature(convertTemperature(-17.8, toCelsius = false), 1))   // -0.04 °F
+        assertEquals("0", formatTemperature(-0.4, 0))
+        assertEquals("-1", formatTemperature(-0.6, 0))
+        assertEquals("-17.8", formatTemperature(-17.8, 1))
+    }
+
+    @Test
     fun temperatureDisplay_fahrenheit_freezing() {
         val display = convertTemperature(0.0, toCelsius = false)
         assertEquals("32.0°F", String.format("%.1f°F", display))

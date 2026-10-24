@@ -73,14 +73,19 @@ class WeatherLogicTest {
 
     @Test
     fun testUvColorScale() {
+        // The colour follows the whole number the badge shows (half-up), not the raw value.
         assertEquals(Color(0xFF66BB6A), uvColor(0.0))   // low (< 3)
-        assertEquals(Color(0xFF66BB6A), uvColor(2.9))
-        assertEquals(Color(0xFFFDD835), uvColor(3.0))   // moderate (3–5)
-        assertEquals(Color(0xFFFDD835), uvColor(5.9))
+        assertEquals(Color(0xFF66BB6A), uvColor(2.4))
+        assertEquals(Color(0xFFFDD835), uvColor(2.6))   // shown as 3: moderate (3–5)
+        assertEquals(Color(0xFFFDD835), uvColor(3.0))
+        assertEquals(Color(0xFFFDD835), uvColor(5.4))
         assertEquals(Color(0xFFFFA726), uvColor(6.0))   // high (6–7)
-        assertEquals(Color(0xFFFFA726), uvColor(7.9))
-        assertEquals(Color(0xFFEF5350), uvColor(8.0))   // very high (8–10)
-        assertEquals(Color(0xFFEF5350), uvColor(10.9))
+        assertEquals(Color(0xFFFFA726), uvColor(7.4))
+        assertEquals(Color(0xFFEF5350), uvColor(7.6))   // shown as 8: very high (8–10)
+        assertEquals(Color(0xFFEF5350), uvColor(8.0))
+        assertEquals(Color(0xFFEF5350), uvColor(10.4))
+        assertEquals(8, uvLevel(7.6))
+        assertEquals(2, uvLevel(2.4))
         assertEquals(Color(0xFFAB47BC), uvColor(11.0))  // extreme (≥ 11)
         assertEquals(Color(0xFFAB47BC), uvColor(15.0))
     }
