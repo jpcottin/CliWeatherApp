@@ -291,12 +291,13 @@ private fun buildSpeechText(
         (if (prefs.appLanguage == AppLanguage.FR) "degrés Celsius" else "degrees Celsius")
     else
         (if (prefs.appLanguage == AppLanguage.FR) "degrés Fahrenheit" else "degrees Fahrenheit")
-    val isNegative = displayTemp < 0
-    val absTempStr = String.format("%.1f", kotlin.math.abs(displayTemp))
+    val rounded = roundTemperature(displayTemp, 1)      // never "minus 0.0 degrees"
+    val isNegative = rounded < 0
+    val absTempStr = formatTemperature(kotlin.math.abs(rounded), 1)
     val minusPrefix = if (isNegative) "${localizedContext.getString(R.string.minus)} " else ""
     val condition = getConditionString(localizedContext, uiState.weatherCode)
     val uvStr = if (prefs.showUvIndex && uiState.currentUvIndex != null)
-        String.format("%.0f", uiState.currentUvIndex) else null
+        uvLevel(uiState.currentUvIndex).toString() else null
     val uvSuffix = when {
         uvStr == null -> ""
         prefs.appLanguage == AppLanguage.FR -> " L'indice UV est $uvStr."

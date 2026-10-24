@@ -279,7 +279,7 @@ fun WeatherGlassesScreen(
 ) {
     val displayTemp = convertTemperature(temperature, isCelsius)
     val unit = if (isCelsius) "C" else "F"
-    val tempStr = String.format("%.1f°$unit", displayTemp)
+    val tempStr = "${formatTemperature(displayTemp, 1)}°$unit"
 
     // Read the locale observably from the composition so the forecast hour
     // labels recompose if the device locale changes (lint: NonObservableLocale).
@@ -357,7 +357,7 @@ fun WeatherGlassesScreen(
                                             tint = GlimmerTheme.colors.primary
                                         )
                                         Text(
-                                            text = "${String.format("%.0f", convertTemperature(item.temp, isCelsius))}°$unit",
+                                            text = "${formatTemperature(convertTemperature(item.temp, isCelsius), 0)}°$unit",
                                             style = GlimmerTheme.typography.caption
                                         )
                                     }
