@@ -1,5 +1,6 @@
 package com.jpcottin.weatherglance
 
+import kotlinx.coroutines.CancellationException
 import android.annotation.SuppressLint
 import com.google.gson.annotations.SerializedName
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -246,6 +247,9 @@ class RetrofitWeatherRepository : WeatherRepository {
                 forecasts.daily,
                 forecasts.currentUvIndex
             )
+        } catch (e: CancellationException) {
+            // A newer fetch replaced this one: not an error, nothing to report.
+            throw e
         } catch (e: Exception) {
             onLoc("Error: ${e.message}", "Error", 0.0, 0.0)
             onWeather(0, -999.0, "UTC", 1, emptyList(), emptyList(), null)
