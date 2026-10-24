@@ -125,8 +125,8 @@ fun SettingsDialog(
                     value = localDailyRange.toFloat(),
                     onValueChange = { localDailyRange = it.toInt() },
                     onValueChangeFinished = { onDailyRangeChange(localDailyRange) },
-                    valueRange = 0f..16f,
-                    steps = 15,
+                    valueRange = 0f..MAX_DAILY_RANGE.toFloat(),
+                    steps = MAX_DAILY_RANGE - 1,
                     modifier = Modifier.testTag("slider_daily")
                 )
                 Spacer(Modifier.height(16.dp)); HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f)); Spacer(Modifier.height(16.dp))

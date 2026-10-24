@@ -24,8 +24,12 @@ class PreferenceManager(context: Context) {
         .putString("last_lon", lon.toString())
         .apply()
 
-    fun getLatitude() = try { prefs.getString("last_lat", "37.422")!!.toDouble() } catch (_: ClassCastException) { 37.422 }
-    fun getLongitude() = try { prefs.getString("last_lon", "-122.084")!!.toDouble() } catch (_: ClassCastException) { -122.084 }
+    fun getLatitude() = coordinateOrDefault(storedString("last_lat"), 37.422)
+    fun getLongitude() = coordinateOrDefault(storedString("last_lon"), -122.084)
+
+    /** The stored string, or null when the key is missing or holds another type. */
+    private fun storedString(key: String): String? =
+        try { prefs.getString(key, null) } catch (_: ClassCastException) { null }
 
     fun saveIs24Hour(value: Boolean) = prefs.edit().putBoolean("is_24h", value).apply()
     fun getIs24Hour(context: Context) = prefs.getBoolean("is_24h", DateFormat.is24HourFormat(context))
@@ -45,3 +49,7 @@ class PreferenceManager(context: Context) {
     fun saveShowAirQuality(value: Boolean) = prefs.edit().putBoolean("show_air_quality", value).apply()
     fun getShowAirQuality() = prefs.getBoolean("show_air_quality", false)
 }
+
+/** A saved coordinate parsed back, or [default] when nothing usable was saved. */
+internal fun coordinateOrDefault(raw: String?, default: Double): Double =
+    raw?.toDoubleOrNull()?.takeIf { it.isFinite() } ?: default
