@@ -1,5 +1,7 @@
 package com.jpcottin.weatherglance
 
+import java.time.ZoneId
+import java.time.Clock
 import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.material.icons.Icons
@@ -193,6 +195,16 @@ data class AirQualityNow(val current: Int?, val hourly: Map<String, Int>)
  * of a response that is entirely in the past; hours without a value are left
  * out of the map, and a missing value at the current hour leaves current null.
  */
+/**
+ * The current hour, on the hour, in the zone the air-quality response is expressed in
+ * (`timezone=auto` makes it the location's zone, not the phone's). An unknown zone name falls
+ * back to the device zone rather than failing the whole reading.
+ */
+fun currentHourIso(zoneName: String?, clock: Clock = Clock.systemDefaultZone()): String {
+    val zone = zoneName?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: clock.zone
+    return LocalDateTime.now(clock.withZone(zone)).format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:00"))
+}
+
 fun buildAirQuality(hourly: AirQualityHourly, nowIso: String): AirQualityNow {
     val idx = hourly.time.indexOfFirst { it >= nowIso }.takeIf { it != -1 } ?: 0
     val current = hourly.europeanAqi.getOrNull(idx)

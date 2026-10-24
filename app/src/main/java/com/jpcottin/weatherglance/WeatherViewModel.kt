@@ -213,9 +213,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             runCatching {
                 withTimeoutOrNull(5000L) {
                     val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon)
-                    val nowStr = LocalDateTime.now()
-                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:00"))
-                    val aq = buildAirQuality(res.hourly, nowStr)
+                    // The hours come back in the location's zone: match "now" in that zone,
+                    // or a tapped city on the far side of the globe shows midnight's reading.
+                    val aq = buildAirQuality(res.hourly, currentHourIso(res.timezone))
                     uiState = uiState.copy(currentAirQuality = aq.current, aqiHourlyMap = aq.hourly)
                 }
             }

@@ -62,4 +62,21 @@ class AirQualityTest {
         assertNull(aq.current)
         assertTrue(aq.hourly.isEmpty())
     }
+
+    // "Now" for the matching is taken in the response's zone, not the phone's.
+    private val instant = java.time.Instant.parse("2026-04-20T22:15:00Z")   // 15:15 in California, 07:15 next day in Tokyo
+
+    @Test
+    fun theCurrentHourIsTakenInTheLocationZone() {
+        val clock = java.time.Clock.fixed(instant, java.time.ZoneId.of("America/Los_Angeles"))
+        assertEquals("2026-04-21T07:00", currentHourIso("Asia/Tokyo", clock))
+        assertEquals("2026-04-20T15:00", currentHourIso("America/Los_Angeles", clock))
+    }
+
+    @Test
+    fun anUnknownZoneFallsBackToTheDeviceZone() {
+        val clock = java.time.Clock.fixed(instant, java.time.ZoneId.of("America/Los_Angeles"))
+        assertEquals("2026-04-20T15:00", currentHourIso("Mars/Olympus", clock))
+        assertEquals("2026-04-20T15:00", currentHourIso(null, clock))
+    }
 }
