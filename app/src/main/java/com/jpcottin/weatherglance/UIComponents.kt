@@ -34,6 +34,7 @@ import androidx.compose.ui.window.Dialog
 import android.content.Context
 import java.util.Date
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 @Composable
 private fun rememberRefreshRotation(isRefreshing: Boolean): Float {
@@ -109,9 +110,12 @@ fun SettingsDialog(
 
                 var localHourlyRange by remember(prefs.hourlyRange) { mutableStateOf(prefs.hourlyRange) }
                 Text(String.format(ctx.getString(R.string.hourly_range_label), localHourlyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
+                // A stepped slider snaps to lerp(0, max, i / steps), which float arithmetic
+                // lands a hair under the tick for some i (57 arrives as 56.999996): truncating
+                // showed and saved the hour below the one chosen, and made those ticks unreachable.
                 Slider(
                     value = localHourlyRange.toFloat(),
-                    onValueChange = { localHourlyRange = it.toInt() },
+                    onValueChange = { localHourlyRange = it.roundToInt() },
                     onValueChangeFinished = { onHourlyRangeChange(localHourlyRange) },
                     valueRange = 0f..168f,
                     steps = 167,
@@ -123,7 +127,7 @@ fun SettingsDialog(
                 Text(String.format(ctx.getString(R.string.daily_range_label), localDailyRange), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                 Slider(
                     value = localDailyRange.toFloat(),
-                    onValueChange = { localDailyRange = it.toInt() },
+                    onValueChange = { localDailyRange = it.roundToInt() },
                     onValueChangeFinished = { onDailyRangeChange(localDailyRange) },
                     valueRange = 0f..MAX_DAILY_RANGE.toFloat(),
                     steps = MAX_DAILY_RANGE - 1,

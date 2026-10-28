@@ -2,6 +2,7 @@ package com.jpcottin.weatherglance
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
@@ -128,6 +129,19 @@ class MainActivityUITest {
         try { this.performScrollTo() } catch (e: AssertionError) { }
         this.assertIsDisplayed()
         return this
+    }
+
+    @Test
+    fun hourlySliderKeepsTheTickItSnapsTo() {
+        // The stepped slider snaps 57 to 56.999996; the label and the saved range must say 57.
+        waitForDataToLoad()
+        composeTestRule.onNodeWithContentDescription("Settings").safeClick()
+        composeTestRule.onNodeWithTag("slider_hourly")
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(57f) }
+        composeTestRule.onNodeWithText(context.getString(R.string.hourly_range_label, 57)).assertExists()
+        composeTestRule.onNodeWithText("OK").safeClick()
+        waitForDataToLoad()
+        org.junit.Assert.assertEquals(57, prefManager.getHourlyRange())
     }
 
     @Test
