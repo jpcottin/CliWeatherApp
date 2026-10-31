@@ -67,7 +67,7 @@ Tailor the app to your preferences with a comprehensive settings suite:
 *   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-15d) forecast rows using intuitive sliders.
 *   **Sunrise & Sunset**: Toggle the display of sunrise and sunset times on daily forecast cards (on by default).
 *   **UV Index**: Toggle UV index display (off by default). When on: shows a colour-coded badge next to the clock, per-hour UV values in the hourly forecast, and daily UV max in the daily forecast. Announced by TTS in all 5 languages.
-*   **Air Quality (AQI)**: Toggle European AQI display (off by default). When on: shows a colour-coded badge next to the clock and per-hour AQI values in the hourly forecast (today only). Uses the Open-Meteo Air Quality API — no API key required.
+*   **Air Quality (AQI)**: Toggle European AQI display (off by default). When on: shows a colour-coded badge next to the clock and per-hour AQI values in the hourly forecast, for every hour of the strip the data covers (the endpoint serves seven days, so a strip longer than 144 hours has no AQI on its last hours). Uses the Open-Meteo Air Quality API — no API key required.
 *   **Location Mode**: Switch between **Map Mode** (a fixed point) and **GPS Mode** (the device's position at each refresh).
 
 ## 🔒 Permissions
@@ -84,7 +84,7 @@ CliWeatherApp utilizes the **[Open-Meteo API](https://open-meteo.com/)** for all
 *   **Transparency**: No API keys are required for standard usage.
 *   **Query Optimization**: The app dynamically calculates the minimum required number of forecast days (up to 16) based on your selected hourly and daily ranges to minimize network payload and ensure snappier updates.
 *   **Weather endpoint** (`api.open-meteo.com/v1/forecast`): fetches `hourly=temperature_2m,weather_code,is_day,uv_index` and `daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max`. UV index (hourly and daily max) and sunrise/sunset are always requested regardless of display settings — zero extra network cost.
-*   **Air quality endpoint** (`air-quality-api.open-meteo.com/v1/air-quality`): fetches `hourly=european_aqi` for today (`forecast_days=1`). This call is only made when the Air Quality setting is enabled. The full hourly array is stored so each hour in the forecast can show its AQI value.
+*   **Air quality endpoint** (`air-quality-api.open-meteo.com/v1/air-quality`): fetches `hourly=european_aqi` for as many days as the hourly range needs (`forecast_days` is the strip's length in whole days plus one, because the strip starts at the current hour and may cross midnight: a 24-hour strip asks for two days, capped at the seven days the endpoint serves). This call is only made when the Air Quality setting is enabled. The full hourly array is stored so each hour in the forecast can show its AQI value.
 *   **Geocoding**: Uses the native Android `Geocoder` service to translate GPS coordinates into human-readable city and country names, localized instantly to your selected app language.
 
 ## 🥽 AI Glasses Integration (Android XR)
