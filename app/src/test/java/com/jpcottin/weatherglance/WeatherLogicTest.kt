@@ -1,14 +1,18 @@
 package com.jpcottin.weatherglance
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AcUnit
+import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.NightsStay
 import androidx.compose.material.icons.rounded.Thunderstorm
+import androidx.compose.material.icons.rounded.Umbrella
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import java.util.*
 
@@ -102,6 +106,44 @@ class WeatherLogicTest {
     fun testGetWeatherIconFor95() {
         assertEquals(Icons.Rounded.Thunderstorm, getWeatherIcon(95, 1))
         assertEquals(Icons.Rounded.Thunderstorm, getWeatherIcon(95, 0))
+    }
+
+    // The WMO codes Open-Meteo's forecast endpoint documents.
+    private val openMeteoWeatherCodes = listOf(
+        0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67,
+        71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99,
+    )
+
+    @Test
+    fun everyCodeOpenMeteoServesHasAName() {
+        for (code in openMeteoWeatherCodes) {
+            assertNotEquals("code $code reads as unknown", R.string.unknown, conditionStringRes(code))
+        }
+        assertEquals(R.string.unknown, conditionStringRes(42))
+    }
+
+    @Test
+    fun theFreezingSnowAndHailCodesReadAsTheirKind() {
+        // Freezing drizzle and freezing rain are drizzle and rain; snow grains and snow
+        // showers are snow; a thunderstorm with hail is a thunderstorm.
+        for (code in listOf(56, 57)) {
+            assertEquals(Icons.Rounded.WaterDrop, getWeatherIcon(code, 1))
+            assertEquals(R.string.weather_drizzle, conditionStringRes(code))
+        }
+        for (code in listOf(66, 67)) {
+            assertEquals(Icons.Rounded.Umbrella, getWeatherIcon(code, 1))
+            assertEquals(R.string.weather_rainy, conditionStringRes(code))
+        }
+        for (code in listOf(77, 85, 86)) {
+            assertEquals(Icons.Rounded.AcUnit, getWeatherIcon(code, 0))
+            assertEquals(R.string.weather_snowy, conditionStringRes(code))
+        }
+        for (code in listOf(96, 99)) {
+            assertEquals(Icons.Rounded.Thunderstorm, getWeatherIcon(code, 1))
+            assertEquals(R.string.weather_storm, conditionStringRes(code))
+        }
+        assertEquals(Icons.Rounded.Air, getWeatherIcon(48, 1))
+        assertEquals(R.string.weather_foggy, conditionStringRes(48))
     }
 
     @Test
