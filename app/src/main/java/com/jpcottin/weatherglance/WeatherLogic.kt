@@ -11,15 +11,18 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 
+// The WMO weather codes Open-Meteo serves (its forecast docs list exactly these): freezing
+// drizzle (56, 57) and freezing rain (66, 67) read as their liquid kind, snow grains (77) and
+// snow showers (85, 86) as snow, and a thunderstorm with hail (96, 99) as a thunderstorm.
 fun getWeatherIcon(code: Int, isDay: Int) = when (code) {
     0 -> if (isDay == 1) Icons.Rounded.WbSunny else Icons.Rounded.NightsStay
     1, 2, 3 -> if (isDay == 1) Icons.Rounded.Cloud else Icons.Rounded.CloudQueue
     45, 48 -> Icons.Rounded.Air
-    51, 53, 55 -> Icons.Rounded.WaterDrop
-    61, 63, 65 -> Icons.Rounded.Umbrella
-    71, 73, 75 -> Icons.Rounded.AcUnit
+    51, 53, 55, 56, 57 -> Icons.Rounded.WaterDrop
+    61, 63, 65, 66, 67 -> Icons.Rounded.Umbrella
+    71, 73, 75, 77, 85, 86 -> Icons.Rounded.AcUnit
     80, 81, 82 -> Icons.Rounded.WaterDrop
-    95 -> Icons.Rounded.Thunderstorm
+    95, 96, 99 -> Icons.Rounded.Thunderstorm
     else -> Icons.Rounded.Thunderstorm
 }
 
@@ -39,20 +42,20 @@ fun getLocalizedContext(baseContext: Context, lang: AppLanguage): Context {
     return baseContext.createConfigurationContext(config)
 }
 
-fun getConditionString(context: Context, code: Int): String {
-    val resId = when (code) {
-        0 -> R.string.weather_clear
-        1, 2, 3 -> R.string.weather_cloudy
-        45, 48 -> R.string.weather_foggy
-        51, 53, 55 -> R.string.weather_drizzle
-        61, 63, 65 -> R.string.weather_rainy
-        71, 73, 75 -> R.string.weather_snowy
-        80, 81, 82 -> R.string.weather_showers
-        95 -> R.string.weather_storm
-        else -> R.string.unknown
-    }
-    return context.getString(resId)
+/** The string resource naming weather [code]; [R.string.unknown] for a code Open-Meteo does not document. */
+fun conditionStringRes(code: Int): Int = when (code) {
+    0 -> R.string.weather_clear
+    1, 2, 3 -> R.string.weather_cloudy
+    45, 48 -> R.string.weather_foggy
+    51, 53, 55, 56, 57 -> R.string.weather_drizzle
+    61, 63, 65, 66, 67 -> R.string.weather_rainy
+    71, 73, 75, 77, 85, 86 -> R.string.weather_snowy
+    80, 81, 82 -> R.string.weather_showers
+    95, 96, 99 -> R.string.weather_storm
+    else -> R.string.unknown
 }
+
+fun getConditionString(context: Context, code: Int): String = context.getString(conditionStringRes(code))
 
 fun convertTemperature(temp: Double, toCelsius: Boolean) = if (toCelsius) temp else (temp * 9 / 5) + 32
 
