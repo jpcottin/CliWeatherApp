@@ -105,6 +105,10 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     private var fetchJob: Job? = null
     private var airQualityJob: Job? = null
 
+    // The last temperature a fetch delivered, given back when a later fetch fails after the
+    // card was blanked for it.
+    private var lastGoodTemperature: Double? = null
+
     fun fetchWeather(
         useGps: Boolean = prefs.useGps,
         lat: Double = uiState.currentLat,
@@ -134,6 +138,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                     if (prefs.showAirQuality) fetchAirQuality(newLat, newLon)
                 },
                 onWeather = { code, temp, tz, day, hourly, daily, uvIdx ->
+                    lastGoodTemperature = temp
                     uiState = uiState.copy(
                         weatherCode = code,
                         temperature = temp,
@@ -148,7 +153,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 onError = { message ->
                     // The last good location and weather stay; only the label says what went
                     // wrong, and nothing is persisted or fetched for a place nobody chose.
-                    uiState = uiState.copy(locationInfo = message, isRefreshing = false)
+                    uiState = uiState.afterFetchFailure(message, lastGoodTemperature)
                 }
             )
         }

@@ -200,6 +200,35 @@ class MainActivityUITest {
     }
 
     @Test
+    fun aMapTapWhoseFetchFailsGivesTheReadingBack() {
+        waitForDataToLoad()
+        // From here on nothing can be fetched: the tap's request reports a failure.
+        WeatherViewModel.repository = object : WeatherRepository {
+            override suspend fun fetch(
+                context: Context, useGps: Boolean, lat: Double?, lon: Double?, lang: AppLanguage,
+                is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
+                onLoc: (String, String, Double, Double) -> Unit,
+                onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit,
+                onError: (String) -> Unit
+            ) { onError("Error: timeout") }
+        }
+        try {
+            composeTestRule.onNodeWithTag("world_map").performTouchInput {
+                click(percentOffset(0.2f, 0.2f))
+            }
+            composeTestRule.waitUntil(10000) {
+                composeTestRule.onAllNodesWithText("Error: timeout").fetchSemanticsNodes().isNotEmpty()
+            }
+            // The reading the tap had hidden is back on the card instead of a "Loading..." that
+            // no fetch will ever replace.
+            composeTestRule.onNodeWithText("Loading...").assertDoesNotExist()
+            composeTestRule.onNodeWithTag("current_temp").onChildren().filter(hasText("°", substring = true)).assertCountEquals(1)
+        } finally {
+            WeatherViewModel.repository = MockWeatherRepository()
+        }
+    }
+
+    @Test
     @Ignore("Flaky: dismissing the system share sheet does not reliably return focus to the app")
     fun testShareButtonOpensChooserAndEscapes() {
         waitForDataToLoad()
