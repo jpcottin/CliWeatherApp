@@ -309,7 +309,10 @@ fun SectionTimeDisplay(ctx: Context, timezoneId: String?, lang: AppLanguage, is2
     // on every run). Has no effect on the real app.
     val inspection = LocalInspectionMode.current
     fun now() = if (inspection) Date(PREVIEW_CLOCK_MILLIS) else Date()
-    var rawTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(now(), timezoneId, lang.locale, is24h)) }
+    // The instant is fixed, the zone must be too: a preview without a zone used to show the
+    // instant in the host's zone, so the goldens only matched on a host running on UTC.
+    val zone = if (inspection) timezoneId ?: "UTC" else timezoneId
+    var rawTime by remember(timezoneId, lang, is24h) { mutableStateOf(formatTime(now(), zone, lang.locale, is24h)) }
 
     if (!inspection) {
         LaunchedEffect(timezoneId, lang, is24h) {
