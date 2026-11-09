@@ -215,6 +215,17 @@ fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): For
     return Forecasts(hourlyList, dailyList, uvIndex)
 }
 
+// ── A fetch that failed ──────────────────────────────────────────────────────
+
+/**
+ * The state once a fetch has failed: the label says why and the refresh ends, while the last
+ * good location and weather stay. A reading hidden while waiting for a new spot (a map tap
+ * blanks the card) comes back as [lastGoodTemperature]; without it the card would sit on
+ * "Loading", and the glasses button off, for a fetch that is not coming.
+ */
+fun WeatherUiState.afterFetchFailure(message: String, lastGoodTemperature: Double?): WeatherUiState =
+    copy(locationInfo = message, isRefreshing = false, temperature = temperature ?: lastGoodTemperature)
+
 // ── Air quality ──────────────────────────────────────────────────────────────
 
 data class AirQualityNow(val current: Int?, val hourly: Map<String, Int>)
