@@ -128,12 +128,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
                 hourlyRange = prefs.hourlyRange,
                 dailyRange = prefs.dailyRange,
                 onLoc = { fullInfo, city, newLat, newLon ->
-                    uiState = uiState.copy(
-                        locationInfo = fullInfo,
-                        rawCity = city,
-                        currentLat = newLat,
-                        currentLon = newLon
-                    )
+                    uiState = uiState.atLocation(fullInfo, city, newLat, newLon)
                     prefManager.saveLocation(newLat, newLon)
                     if (prefs.showAirQuality) fetchAirQuality(newLat, newLon)
                 },

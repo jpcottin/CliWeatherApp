@@ -226,6 +226,31 @@ fun buildForecasts(res: WeatherResponse, hourlyRange: Int, dailyRange: Int): For
 fun WeatherUiState.afterFetchFailure(message: String, lastGoodTemperature: Double?): WeatherUiState =
     copy(locationInfo = message, isRefreshing = false, temperature = temperature ?: lastGoodTemperature)
 
+// ── A fetch that found its place ─────────────────────────────────────────────
+
+/** Spots this close (in degrees, about a kilometre) share an air-quality reading: GPS jitter is well within. */
+const val SAME_SPOT_DEGREES = 0.01
+
+/**
+ * The state once a fetch has found its place: the label, the city and the marker move there.
+ * An air-quality reading belongs to the spot it was read for. A new spot drops it, and the
+ * per-hour map with it (its local-hour keys would match the new strip's times and badge the
+ * new city with the old one's air), until its own reading lands; a refresh of the same spot
+ * keeps both, as a reading that fails keeps the last one.
+ */
+fun WeatherUiState.atLocation(info: String, city: String, lat: Double, lon: Double): WeatherUiState {
+    val sameSpot = kotlin.math.abs(lat - currentLat) <= SAME_SPOT_DEGREES &&
+        kotlin.math.abs(lon - currentLon) <= SAME_SPOT_DEGREES
+    return copy(
+        locationInfo = info,
+        rawCity = city,
+        currentLat = lat,
+        currentLon = lon,
+        currentAirQuality = if (sameSpot) currentAirQuality else null,
+        aqiHourlyMap = if (sameSpot) aqiHourlyMap else emptyMap(),
+    )
+}
+
 // ── Air quality ──────────────────────────────────────────────────────────────
 
 data class AirQualityNow(val current: Int?, val hourly: Map<String, Int>)
