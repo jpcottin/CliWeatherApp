@@ -100,6 +100,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.uiautomator)
     androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.okhttp.mockwebserver)
+    androidTestImplementation(libs.okhttp.tls)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     debugImplementation(libs.androidx.ui.tooling)

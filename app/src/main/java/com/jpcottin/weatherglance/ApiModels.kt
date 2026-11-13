@@ -130,7 +130,8 @@ interface WeatherRepository {
     )
 }
 
-class RetrofitWeatherRepository : WeatherRepository {
+/** The real pipeline: fused location, Geocoder, then the forecast from [api] (Open-Meteo unless a test serves its own). */
+class RetrofitWeatherRepository(private val api: WeatherApi = RetrofitClient.api) : WeatherRepository {
     override suspend fun fetch(
         context: android.content.Context,
         useGps: Boolean,
@@ -234,7 +235,7 @@ class RetrofitWeatherRepository : WeatherRepository {
 
             val neededDays = forecastDaysNeeded(hourlyRange, dailyRange)
             val res = withTimeoutOrNull(5000L) {
-                RetrofitClient.api.getWeather(finalLat, finalLon, days = neededDays)
+                api.getWeather(finalLat, finalLon, days = neededDays)
             } ?: run {
                 onError("Error: timeout")
                 return

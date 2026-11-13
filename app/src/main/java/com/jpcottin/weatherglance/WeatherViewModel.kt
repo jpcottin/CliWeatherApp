@@ -57,6 +57,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
 
     companion object {
         var repository: WeatherRepository = RetrofitWeatherRepository()
+        /** Where the air quality comes from: Open-Meteo, unless a test serves its own. */
+        var airQualityApi: AirQualityApi = AirQualityRetrofitClient.api
     }
 
     private val prefManager = PreferenceManager(application)
@@ -230,7 +232,7 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
             runCatching {
                 withTimeoutOrNull(5000L) {
                     // Enough days for every hour of the strip, or the badges stop at midnight.
-                    val res = AirQualityRetrofitClient.api.getAirQuality(lat, lon, days = airQualityDaysNeeded(prefs.hourlyRange))
+                    val res = airQualityApi.getAirQuality(lat, lon, days = airQualityDaysNeeded(prefs.hourlyRange))
                     // The hours come back in the location's zone: match "now" in that zone,
                     // or a tapped city on the far side of the globe shows midnight's reading.
                     val aq = buildAirQuality(res.hourly, currentHourIso(res.timezone))
