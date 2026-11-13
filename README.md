@@ -67,7 +67,7 @@ Tailor the app to your preferences with a comprehensive settings suite:
 *   **Forecast Range**: Precisely control the amount of data shown in the hourly (0-168h) and daily (0-15d) forecast rows using intuitive sliders.
 *   **Sunrise & Sunset**: Toggle the display of sunrise and sunset times on daily forecast cards (on by default).
 *   **UV Index**: Toggle UV index display (off by default). When on: shows a colour-coded badge next to the clock, per-hour UV values in the hourly forecast, and daily UV max in the daily forecast. Announced by TTS in all 5 languages.
-*   **Air Quality (AQI)**: Toggle European AQI display (off by default). When on: shows a colour-coded badge next to the clock and per-hour AQI values in the hourly forecast, for every hour of the strip the data covers (the endpoint serves seven days, so a strip longer than 144 hours has no AQI on its last hours). Uses the Open-Meteo Air Quality API — no API key required.
+*   **Air Quality (AQI)**: Toggle European AQI display (off by default). When on: shows a colour-coded badge next to the clock and per-hour AQI values in the hourly forecast, for every hour of the strip the data covers (the endpoint serves seven days, so a strip longer than 144 hours has no AQI on its last hours). Uses the Open-Meteo Air Quality API — no API key required. A reading belongs to the spot it was read for: a new spot on the map drops it until its own reading lands, while a refresh of the same spot (a GPS nudge included) keeps it.
 *   **Location Mode**: Switch between **Map Mode** (a fixed point) and **GPS Mode** (the device's position at each refresh).
 
 ## 🔒 Permissions
