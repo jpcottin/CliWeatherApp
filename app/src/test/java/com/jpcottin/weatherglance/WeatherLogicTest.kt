@@ -6,6 +6,7 @@ import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.NightsStay
+import androidx.compose.material.icons.rounded.QuestionMark
 import androidx.compose.material.icons.rounded.Thunderstorm
 import androidx.compose.material.icons.rounded.Umbrella
 import androidx.compose.material.icons.rounded.WaterDrop
@@ -108,6 +109,15 @@ class WeatherLogicTest {
         assertEquals(Icons.Rounded.Thunderstorm, getWeatherIcon(95, 0))
     }
 
+    @Test
+    fun anUnknownCodeIsNotAStorm() {
+        // -1 is what the card holds before the first reading; 42 is no WMO code at all.
+        for (code in listOf(-1, 4, 42, 100)) {
+            assertEquals("code $code", Icons.Rounded.QuestionMark, getWeatherIcon(code, 1))
+            assertEquals("code $code", Icons.Rounded.QuestionMark, getWeatherIcon(code, 0))
+        }
+    }
+
     // The WMO codes Open-Meteo's forecast endpoint documents.
     private val openMeteoWeatherCodes = listOf(
         0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67,
@@ -118,6 +128,7 @@ class WeatherLogicTest {
     fun everyCodeOpenMeteoServesHasAName() {
         for (code in openMeteoWeatherCodes) {
             assertNotEquals("code $code reads as unknown", R.string.unknown, conditionStringRes(code))
+            assertNotEquals("code $code has no icon", Icons.Rounded.QuestionMark, getWeatherIcon(code, 1))
         }
         assertEquals(R.string.unknown, conditionStringRes(42))
     }

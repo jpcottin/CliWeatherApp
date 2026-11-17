@@ -14,6 +14,8 @@ import java.util.*
 // The WMO weather codes Open-Meteo serves (its forecast docs list exactly these): freezing
 // drizzle (56, 57) and freezing rain (66, 67) read as their liquid kind, snow grains (77) and
 // snow showers (85, 86) as snow, and a thunderstorm with hail (96, 99) as a thunderstorm.
+// Any other code reads as "Unknown" and gets a question mark, not a storm: the card shows the
+// code before the first reading lands (-1) as well.
 fun getWeatherIcon(code: Int, isDay: Int) = when (code) {
     0 -> if (isDay == 1) Icons.Rounded.WbSunny else Icons.Rounded.NightsStay
     1, 2, 3 -> if (isDay == 1) Icons.Rounded.Cloud else Icons.Rounded.CloudQueue
@@ -23,7 +25,7 @@ fun getWeatherIcon(code: Int, isDay: Int) = when (code) {
     71, 73, 75, 77, 85, 86 -> Icons.Rounded.AcUnit
     80, 81, 82 -> Icons.Rounded.WaterDrop
     95, 96, 99 -> Icons.Rounded.Thunderstorm
-    else -> Icons.Rounded.Thunderstorm
+    else -> Icons.Rounded.QuestionMark
 }
 
 fun getBackgroundColors(code: Int, isDay: Int): List<Int> {
