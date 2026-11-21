@@ -186,8 +186,14 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun updateUseGps(value: Boolean) {
+        val switchedToGps = value && !prefs.useGps
         prefs = prefs.copy(useGps = value)
         viewModelScope.launch { prefManager.saveUseGps(value) }
+        // GPS mode shows where the device is: switching to it kept the last tapped spot's
+        // weather (and its name) on the card until Refresh was pressed. Without the
+        // permission there is no fix to fetch; the card offers to ask for it instead.
+        // Back to map mode, the GPS reading stays: it is a spot like any tapped one.
+        if (switchedToGps && uiState.permissionGranted) fetchWeather(useGps = true)
     }
 
     fun updateIs24Hour(value: Boolean) {
