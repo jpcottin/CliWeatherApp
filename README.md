@@ -47,7 +47,7 @@ CliWeatherApp is a robust, modern Android weather application built with Jetpack
     *   **Customizable Daily Forecast**: View from **0 to 15 days** of daily high/low ranges, UV index max, and sunrise/sunset times.
 *   **Dual-Mode Location Support**:
     *   **Interactive World Map**: Tap anywhere on the high-precision map to fetch weather for that specific coordinate.
-    *   **GPS**: Fetches the weather for the device's current position on every refresh. Fully compatible with `adb emu geo fix` for emulator testing.
+    *   **GPS**: Fetches the weather for the device's current position as soon as the mode is switched on, and again on every refresh. Fully compatible with `adb emu geo fix` for emulator testing.
 *   **Text-to-Speech (TTS)**: Listen to your weather report in your preferred language.
 *   **Social Sharing**: Capture a snapshot of your current weather and share it instantly with friends.
 *   **Multi-Device Optimized**: Native support for Phone, Tablet, and Foldable layouts using `WindowSizeClass`. On phones, the header uses a compact side-by-side layout (time + badges on the left, weather icon and temperature on the right) to maximise vertical space for forecasts.

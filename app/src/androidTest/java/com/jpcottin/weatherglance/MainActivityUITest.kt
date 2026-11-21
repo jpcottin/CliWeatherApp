@@ -229,6 +229,35 @@ class MainActivityUITest {
     }
 
     @Test
+    fun switchingToGpsFetchesWhereTheDeviceIs() {
+        waitForDataToLoad()
+        val gpsFetches = java.util.concurrent.atomic.AtomicInteger()
+        val mock = MockWeatherRepository()
+        WeatherViewModel.repository = object : WeatherRepository {
+            override suspend fun fetch(
+                context: Context, useGps: Boolean, lat: Double?, lon: Double?, lang: AppLanguage,
+                is24Hour: Boolean, hourlyRange: Int, dailyRange: Int,
+                onLoc: (String, String, Double, Double) -> Unit,
+                onWeather: (Int, Double, String, Int, List<HourlyForecastData>, List<DailyForecastData>, Double?) -> Unit,
+                onError: (String) -> Unit
+            ) {
+                if (useGps) gpsFetches.incrementAndGet()
+                mock.fetch(context, useGps, lat, lon, lang, is24Hour, hourlyRange, dailyRange, onLoc, onWeather, onError)
+            }
+        }
+        try {
+            composeTestRule.onNodeWithContentDescription("Settings").safeClick()
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag("switch_gps").safeClick()
+            // The card moves to the device's position at once, not on the next Refresh.
+            composeTestRule.waitUntil(10000) { gpsFetches.get() == 1 }
+            composeTestRule.onNodeWithText("OK").safeClick()
+        } finally {
+            WeatherViewModel.repository = MockWeatherRepository()
+        }
+    }
+
+    @Test
     @Ignore("Flaky: dismissing the system share sheet does not reliably return focus to the app")
     fun testShareButtonOpensChooserAndEscapes() {
         waitForDataToLoad()
